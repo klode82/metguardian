@@ -32,7 +32,7 @@ ALLOWED_CONFIG_KEYS = {
     "backup_folder",
     "scan_interval_seconds",
     "mtime_guard_seconds",
-    "theme",
+    "dark_mode",
 }
 
 # Browser event name the UI listens for to refresh after a scan.

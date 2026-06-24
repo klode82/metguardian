@@ -31,6 +31,15 @@
         REMOVED_OR_COMPLETED: "Removed / completed",
     };
 
+    // ---- Theme ----------------------------------------------------------
+    // The theme color is a product decision, fixed to Teal; it is not exposed
+    // to the user. Only dark mode is user-toggleable. The theme is applied as
+    // a class on <html>: uk-theme-teal (+ "dark").
+    const FIXED_THEME_COLOR = "teal";
+    const DEFAULT_DARK = false;
+
+    let currentDark = DEFAULT_DARK;
+
     // ---- Tiny DOM helpers -----------------------------------------------
 
     function $(sel) { return document.querySelector(sel); }
@@ -220,6 +229,83 @@
         });
     }
 
+    // ---- Theme + Settings ------------------------------------------------
+
+    function applyTheme(dark) {
+        currentDark = !!dark;
+        document.documentElement.className =
+            "uk-theme-" + FIXED_THEME_COLOR + (dark ? " dark" : "");
+    }
+
+    function loadSettings(config) {
+        // Folders
+        $("#set-temp").value = config.temp_folder || "";
+        $("#set-backup").value = config.backup_folder || "";
+        // Interval: stored in seconds, shown in minutes.
+        const secs = parseInt(config.scan_interval_seconds, 10);
+        $("#set-interval").value = isFinite(secs) ? Math.max(1, Math.round(secs / 60)) : 5;
+        // Appearance: dark mode only (color is fixed to Teal).
+        const dark = config.dark_mode === "1" || config.dark_mode === "true";
+        $("#set-dark").checked = dark;
+        applyTheme(dark);
+    }
+
+    async function browseFolder(targetInputId) {
+        const a = api();
+        if (!a) return;
+        try {
+            const res = await a.pick_folder("Select a folder");
+            if (res && res.ok && res.path) {
+                $(targetInputId).value = res.path;
+            }
+        } catch (err) {
+            console.error("pick_folder failed:", err);
+        }
+    }
+
+    async function saveSettings() {
+        const a = api();
+        if (!a) return;
+        const btn = $("#save-settings");
+        const status = $("#save-status");
+        const warnBox = $("#settings-warnings");
+        const mins = Math.max(1, parseInt($("#set-interval").value, 10) || 5);
+
+        const payload = {
+            temp_folder: $("#set-temp").value.trim(),
+            backup_folder: $("#set-backup").value.trim(),
+            scan_interval_seconds: String(mins * 60),
+            dark_mode: $("#set-dark").checked ? "1" : "0",
+        };
+
+        btn.disabled = true;
+        status.textContent = "Saving…";
+        warnBox.hidden = true;
+        try {
+            const result = await a.save_config(payload);
+            if (result && result.ok) {
+                status.textContent = "Saved";
+                if (result.warnings && result.warnings.length) {
+                    warnBox.innerHTML = result.warnings.map(function (w) {
+                        return "<div>⚠ " + escapeHtml(w) + "</div>";
+                    }).join("");
+                    warnBox.hidden = false;
+                }
+                await refreshAll();
+            } else {
+                status.textContent = "Error";
+                warnBox.innerHTML = "<div>⚠ " + escapeHtml(result && result.error ? result.error : "Unknown error") + "</div>";
+                warnBox.hidden = false;
+            }
+        } catch (err) {
+            console.error("save_config failed:", err);
+            status.textContent = "Error";
+        } finally {
+            btn.disabled = false;
+            setTimeout(function () { status.textContent = ""; }, 3000);
+        }
+    }
+
     // ---- Wiring ----------------------------------------------------------
 
     function wireEvents() {
@@ -230,14 +316,36 @@
             if (tab) switchTab(tab.dataset.tab);
         });
 
+        // Settings: folder pickers.
+        $("#browse-temp").addEventListener("click", function () { browseFolder("#set-temp"); });
+        $("#browse-backup").addEventListener("click", function () { browseFolder("#set-backup"); });
+
+        // Settings: save.
+        $("#save-settings").addEventListener("click", saveSettings);
+
+        // Settings: dark mode -> live preview.
+        $("#set-dark").addEventListener("change", function (e) {
+            applyTheme(e.target.checked);
+        });
+
         // The bridge pushes this after every scan (periodic or manual).
         window.addEventListener("metguardian:scan-complete", function () {
             refreshAll();
         });
     }
 
-    function start() {
+    async function start() {
         wireEvents();
+        const a = api();
+        if (a) {
+            try {
+                const config = await a.get_config();
+                loadSettings(config);   // also applies the saved theme
+            } catch (err) {
+                console.error("get_config failed:", err);
+                applyTheme(DEFAULT_DARK);
+            }
+        }
         refreshAll();
     }
 

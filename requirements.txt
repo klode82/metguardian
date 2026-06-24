@@ -11,51 +11,50 @@
 # COMUNI A TUTTI I SISTEMI
 # ---------------------------------------------------------------------------
 
-# Finestra desktop con interfaccia web. pywebview sceglie da solo il motore
-# nativo: WebView2/Edge su Windows, WebKit su macOS, WebKitGTK su Linux.
-# La UI (Franken UI / HTML / CSS / JS) e' la stessa identica su ogni sistema.
+# Finestra desktop con interfaccia web. pywebview sceglie il backend nativo:
+#   Windows -> WebView2/Edge (gia' nel sistema, nessuna dipendenza extra)
+#   macOS   -> WebKit (via pyobjc)
+#   Linux   -> Qt/QtWebEngine (installato qui sotto, tutto via pip)
 pywebview
 
-# Icona nella system tray (vicino all'orologio) con menu Open / Exit.
-# pystray e' gia' cross-platform.
+# Icona nella system tray (Open / Exit). Cross-platform.
 pystray
 
-# Necessaria a pystray per generare/usare l'immagine dell'icona.
+# Necessaria a pystray per l'immagine dell'icona.
 Pillow
 
 # ---------------------------------------------------------------------------
-# SPECIFICHE PER SISTEMA OPERATIVO
+# WINDOWS
 # ---------------------------------------------------------------------------
-
-# Notifiche toast native di Windows (qualita' migliore su Windows).
+# Notifiche toast native.
 win11toast; sys_platform == 'win32'
 
-# Notifiche su macOS e Linux: plyer astrae il sistema di notifica nativo.
-# (Il nostro notifier.py scegliera' l'implementazione giusta a runtime.)
-plyer; sys_platform != 'win32'
-
-# Backend nativo richiesto da pywebview su macOS.
+# ---------------------------------------------------------------------------
+# macOS
+# ---------------------------------------------------------------------------
+# Backend nativo richiesto da pywebview.
 pyobjc-core; sys_platform == 'darwin'
 pyobjc-framework-Cocoa; sys_platform == 'darwin'
 pyobjc-framework-WebKit; sys_platform == 'darwin'
+# Notifiche.
+plyer; sys_platform == 'darwin'
 
 # ---------------------------------------------------------------------------
-# LINUX: setup speciale (NON via pip)
+# LINUX
 # ---------------------------------------------------------------------------
-# Su Linux pywebview usa il backend GTK/WebKit2, che dipende da PyGObject.
-# PyGObject NON va installato via pip (richiederebbe la compilazione e una
-# lunga catena di librerie di sviluppo). Si usa invece il pacchetto di SISTEMA:
-#
-#   sudo apt install python3-gi python3-gi-cairo gir1.2-gtk-3.0 gir1.2-webkit2-4.1
-#
-# e si crea il virtualenv con accesso ai pacchetti di sistema:
-#
-#   python3 -m venv --system-site-packages .venv
-#
-# Per questo motivo qui NON c'e' nessuna riga "PyGObject": su Linux arriva
-# dal sistema, su Windows/macOS non serve.
+# Backend grafico Qt per pywebview: si installa TUTTO via pip (wheel pronte,
+# Chromium incluso), senza pacchetti di sistema ne' --system-site-packages.
+qtpy; sys_platform == 'linux'
+PyQt6; sys_platform == 'linux'
+PyQt6-WebEngine; sys_platform == 'linux'
+# Notifiche.
+plyer; sys_platform == 'linux'
 
 # ---------------------------------------------------------------------------
-# NOTA: lo scheduler (loop ogni 5 minuti) e SQLite usano la libreria standard
-# di Python (threading, time, sqlite3, pathlib) e non richiedono pacchetti.
-# pathlib viene usato ovunque per gestire i percorsi in modo neutro tra OS.
+# NOTE
+# ---------------------------------------------------------------------------
+# - Lo scheduler (loop ogni 5 minuti) e SQLite usano la libreria standard di
+#   Python (threading, time, sqlite3, pathlib): nessun pacchetto.
+# - Alternativa piu' leggera su Linux: backend GTK (python3-gi + gir1.2-webkit2
+#   come pacchetti di sistema, e venv con --system-site-packages). Qt e' scelto
+#   come default perche' e' completamente pip-installabile e senza attriti.

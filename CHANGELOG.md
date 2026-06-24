@@ -16,7 +16,7 @@ e il progetto adotta il [Versionamento Semantico](https://semver.org/lang/it/).
 ## [Non rilasciato]
 
 ### In corso
-- **Step 9 — UI: impostazioni** (cartelle configurabili, tema persistente).
+- **Step 10 — Notifiche Windows** (`core/notifier.py`).
 
 ### Anticipato
 - **`app.py` (bootstrap minimale, v1.0.0)**: entry point che collega logging,
@@ -72,6 +72,12 @@ e il progetto adotta il [Versionamento Semantico](https://semver.org/lang/it/).
   refresh automatico sull'evento `metguardian:scan-complete`, pulsante
   "Scan now". UI in inglese. Tema **Teal** (light) di default.
   Asset Franken UI: solo `core.min.css` + `core.iife.js` + `icon.iife.js`.
+- **Step 9 — UI: impostazioni**: tab Settings con cartelle temp/backup
+  (selettore nativo via `pick_folder`), intervallo di scansione (in minuti),
+  e interruttore **Dark mode**, con persistenza (`dark_mode` salvato in config e
+  applicato all'avvio). Il **tema colore è fisso a Teal** (decisione di prodotto,
+  non esposta all'utente): rimosso il selettore dei 16 colori. Bridge:
+  `ALLOWED_CONFIG_KEYS` include `dark_mode` (rimossi `theme` e `theme_color`).
 
 ### Note sui temi (Franken UI 2.1.2)
 - I 16 temi colore (zinc, slate, teal, ...) NON sono file separati: stanno tutti
@@ -130,6 +136,17 @@ e il progetto adotta il [Versionamento Semantico](https://semver.org/lang/it/).
   - Database file: `data/metguardian.db`.
 
 ### Note tecniche
+- **QtWebEngine su Linux/Wayland**: su alcuni compositor la finestra rende nera
+  (`dma_buf acquisition failure / Compositor returned null texture`). `app.py`
+  imposta `QTWEBENGINE_CHROMIUM_FLAGS=--disable-gpu --disable-gpu-compositing`
+  solo su Linux (via `setdefault`, così una variabile esportata a mano vince).
+- **Backend grafico pywebview** (deciso): Windows usa **WebView2/Edge**
+  (built-in, nessuna dipendenza nel pacchetto); Linux usa **Qt/QtWebEngine**
+  (installato via pip: `qtpy`, `PyQt6`, `PyQt6-WebEngine` — niente pacchetti di
+  sistema, autosufficiente in fase di packaging); macOS usa WebKit via pyobjc.
+  Scelta orientata alla minor frizione per l'UTENTE FINALE (pacchetto che gira
+  sempre) più che alla leggerezza per lo sviluppatore. GTK resta alternativa
+  leggera ma fragile da distribuire, scartata come default.
 - **Setup Linux**: `PyGObject` non si installa via pip (richiede compilazione).
   Si usa il pacchetto di sistema (`python3-gi`, `gir1.2-gtk-3.0`,
   `gir1.2-webkit2-4.1`) e si crea il venv con `--system-site-packages`.

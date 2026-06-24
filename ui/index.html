@@ -61,6 +61,10 @@
             <button class="mg-tab" data-tab="log" type="button">
                 Activity log
             </button>
+            <button class="mg-tab mg-tab-settings" data-tab="settings" type="button">
+                <span uk-icon="icon: settings; ratio: 0.85"></span>
+                Settings
+            </button>
         </nav>
 
         <main class="mg-main">
@@ -126,6 +130,43 @@
                     <div class="mg-empty" id="log-empty" hidden>
                         <p>No activity recorded yet.</p>
                         <p class="mg-empty-hint">Only state changes are logged, never repeated confirmations.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SETTINGS ---------------------------------------------------- -->
+            <section class="mg-panel" data-panel="settings" hidden>
+                <div class="uk-card mg-settings">
+                    <div class="mg-card-pad">
+
+                        <h2 class="mg-section-title">Folders</h2>
+                        <label class="mg-field-label" for="set-temp">eMule / aMule temp folder</label>
+                        <div class="mg-field-row">
+                            <input class="uk-input mg-mono" id="set-temp" type="text" placeholder="Not set" />
+                            <button class="uk-btn uk-btn-secondary uk-btn-sm" id="browse-temp" type="button">Browse…</button>
+                        </div>
+                        <label class="mg-field-label" for="set-backup">Backup folder</label>
+                        <div class="mg-field-row">
+                            <input class="uk-input mg-mono" id="set-backup" type="text" placeholder="Not set" />
+                            <button class="uk-btn uk-btn-secondary uk-btn-sm" id="browse-backup" type="button">Browse…</button>
+                        </div>
+
+                        <h2 class="mg-section-title">Scanning</h2>
+                        <label class="mg-field-label" for="set-interval">Scan every (minutes)</label>
+                        <input class="uk-input mg-input-narrow" id="set-interval" type="number" min="1" step="1" />
+
+                        <h2 class="mg-section-title">Appearance</h2>
+                        <label class="mg-toggle">
+                            <input type="checkbox" id="set-dark" />
+                            <span>Dark mode</span>
+                        </label>
+
+                        <div class="mg-settings-actions">
+                            <button class="uk-btn uk-btn-primary" id="save-settings" type="button">Save settings</button>
+                            <span class="mg-save-status" id="save-status"></span>
+                        </div>
+                        <div class="mg-warnings" id="settings-warnings" hidden></div>
+
                     </div>
                 </div>
             </section>

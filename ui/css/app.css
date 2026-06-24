@@ -282,3 +282,66 @@ body {
     .mg-header { flex-direction: column; align-items: flex-start; }
     .mg-col-hash, .mg-col-time { display: none; }
 }
+
+/* Settings ----------------------------------------------------------------- */
+
+.mg-card-pad { padding: 22px 24px 26px; }
+
+.mg-section-title {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: hsl(var(--muted-foreground));
+    font-weight: 700;
+    margin: 22px 0 12px;
+}
+.mg-section-title:first-child { margin-top: 0; }
+
+.mg-field-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 6px;
+}
+
+.mg-field-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 14px;
+}
+.mg-field-row .uk-input { flex: 1; }
+
+.mg-input-narrow { width: 120px; }
+
+/* Dark mode toggle */
+.mg-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13.5px;
+    cursor: pointer;
+    user-select: none;
+}
+.mg-toggle input { width: 16px; height: 16px; cursor: pointer; }
+
+/* Actions */
+.mg-settings-actions {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-top: 24px;
+}
+.mg-save-status {
+    font-size: 13px;
+    color: hsl(var(--muted-foreground));
+}
+
+.mg-warnings {
+    margin-top: 12px;
+    font-size: 13px;
+    color: hsl(var(--destructive));
+}
+.mg-warnings div { margin-top: 2px; }
+
+.mg-tab-settings { margin-left: auto; }

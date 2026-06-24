@@ -15,6 +15,8 @@ Run it from the project root:
 """
 
 import logging
+import os
+import sys
 from pathlib import Path
 
 import webview  # pywebview
@@ -39,8 +41,26 @@ WINDOW_HEIGHT = 760
 WINDOW_MIN_SIZE = (820, 560)
 
 
+def _configure_linux_webengine():
+    """Work around QtWebEngine rendering issues on some Linux compositors.
+
+    On certain Wayland setups QtWebEngine cannot share GPU textures and the
+    window renders black ("dma_buf acquisition failure / Compositor returned
+    null texture"). Disabling GPU acceleration fixes it. I set this before Qt
+    starts, and only on Linux; Windows (WebView2) and macOS are unaffected.
+    setdefault means a value the user exported by hand still wins.
+    """
+    if sys.platform.startswith("linux"):
+        os.environ.setdefault(
+            "QTWEBENGINE_CHROMIUM_FLAGS",
+            "--disable-gpu --disable-gpu-compositing",
+        )
+
+
 def main():
     """Start the application and block until the window is closed."""
+    _configure_linux_webengine()
+
     logger = setup_logging()
     logger.info("MetGuardian starting (v%s).", __version__)
 
