@@ -177,6 +177,8 @@ body {
 .mg-table {
     margin: 0;
     width: 100%;
+    table-layout: fixed;   /* fixed layout makes column widths reliable and
+                              lets the File/Detail column truncate correctly */
 }
 
 .mg-table th {
@@ -206,8 +208,8 @@ body {
 .mg-col-change { width: 180px; }
 
 .mg-filename {
-    max-width: 0;        /* let the cell shrink so ellipsis works */
-    width: 100%;
+    display: block;
+    max-width: 100%;     /* the cell width is bounded by table-layout: fixed */
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;

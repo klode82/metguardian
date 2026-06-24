@@ -47,6 +47,9 @@ plyer; sys_platform == 'darwin'
 qtpy; sys_platform == 'linux'
 PyQt6; sys_platform == 'linux'
 PyQt6-WebEngine; sys_platform == 'linux'
+# Backend "xorg" per l'icona di system tray (pystray) quando manca PyGObject:
+# richiede Xlib. Su desktop X11 (es. XFCE) la tray funziona con questo.
+python-xlib; sys_platform == 'linux'
 # Notifiche.
 plyer; sys_platform == 'linux'
 

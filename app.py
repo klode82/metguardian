@@ -27,6 +27,8 @@ from db.repository import Repository
 from core.state_machine import StateMachine
 from scheduler.worker import ScanScheduler
 from api.bridge import Bridge
+from core.notifier import Notifier
+from tray.tray_icon import TrayIcon
 
 __version__ = "1.0.0"
 
@@ -72,13 +74,23 @@ def main():
     repository = Repository(database)
     state_machine = StateMachine(repository)
 
-    # The bridge needs the scheduler, and the scheduler needs the bridge as its
-    # post-cycle callback, so I build the bridge first and inject the scheduler.
+    # The bridge needs the scheduler, and the scheduler needs a post-cycle
+    # callback. I build the bridge and the notifier first, then a small
+    # combined callback that (1) refreshes the UI and (2) notifies about any
+    # files that just became damaged. This keeps the notifier decoupled from
+    # both the bridge and the scheduler.
     bridge = Bridge(repository)
+    notifier = Notifier()
+
+    def on_cycle_complete(report):
+        bridge.on_scan_complete(report)
+        if report is not None:
+            notifier.notify_damaged(report.newly_damaged)
+
     scheduler = ScanScheduler(
         state_machine,
         repository,
-        on_cycle_complete=bridge.on_scan_complete,
+        on_cycle_complete=on_cycle_complete,
     )
     bridge.scheduler = scheduler
 
@@ -96,18 +108,64 @@ def main():
     # Let the bridge push refresh events and open native folder dialogs.
     bridge.set_window(window)
 
+    # Shared flags between the GUI thread and the tray thread.
+    state = {"quitting": False, "tray_ok": False}
+
+    def show_window():
+        """Tray 'Open': bring the window back."""
+        try:
+            window.show()
+        except Exception:
+            logger.exception("Failed to show window")
+
+    def do_exit():
+        """Tray 'Exit': really quit (stop scheduler + tray + destroy window)."""
+        logger.info("Exit requested from tray.")
+        state["quitting"] = True
+        scheduler.stop()
+        tray.stop()
+        try:
+            window.destroy()
+        except Exception:
+            logger.exception("Failed to destroy window")
+
+    tray = TrayIcon(app_name=WINDOW_TITLE, on_open=show_window, on_exit=do_exit)
+
+    def on_closing():
+        """Window close: hide to tray instead of quitting (when tray is up).
+
+        If the tray is not available, allow the real close so the user is never
+        stuck with an unreachable background process.
+        """
+        if state["quitting"] or not state["tray_ok"]:
+            return True  # allow the window to close / app to quit
+        window.hide()
+        return False     # cancel the close; keep running in the tray
+
+    window.events.closing += on_closing
+
     def on_started():
-        """Runs once the GUI loop is up: start scanning in the background."""
+        """Runs once the GUI loop is up: start scanning and the tray."""
         logger.info("GUI started; launching scheduler.")
         scheduler.start()
+        state["tray_ok"] = tray.start()
+        if not state["tray_ok"]:
+            logger.warning(
+                "No system tray available; closing the window will quit the app."
+            )
 
     try:
-        # Blocks here until the window is closed.
-        webview.start(on_started)
+        # Force the Qt backend on Linux: we install Qt via pip and do not want
+        # pywebview to probe GTK first (which both prints a scary traceback and
+        # could pick a broken backend). Windows/macOS use their default.
+        gui = "qt" if sys.platform.startswith("linux") else None
+        # Blocks here until the window is destroyed.
+        webview.start(on_started, gui=gui)
     finally:
-        # Window closed (or an error occurred): stop the background thread.
-        logger.info("Window closed; stopping scheduler.")
+        # Window closed (or an error occurred): stop background work.
+        logger.info("Shutting down; stopping scheduler and tray.")
         scheduler.stop()
+        tray.stop()
         logger.info("MetGuardian stopped.")
 
 

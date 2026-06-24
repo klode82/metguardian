@@ -16,7 +16,7 @@ e il progetto adotta il [Versionamento Semantico](https://semver.org/lang/it/).
 ## [Non rilasciato]
 
 ### In corso
-- **Step 10 — Notifiche Windows** (`core/notifier.py`).
+- **Step 12 — Rifiniture e robustezza** (gestione errori, edge case).
 
 ### Anticipato
 - **`app.py` (bootstrap minimale, v1.0.0)**: entry point che collega logging,
@@ -78,6 +78,19 @@ e il progetto adotta il [Versionamento Semantico](https://semver.org/lang/it/).
   applicato all'avvio). Il **tema colore è fisso a Teal** (decisione di prodotto,
   non esposta all'utente): rimosso il selettore dei 16 colori. Bridge:
   `ALLOWED_CONFIG_KEYS` include `dark_mode` (rimossi `theme` e `theme_color`).
+- **Step 10 — Notifiche** (`core/notifier.py`, v1.0.0): classe `Notifier`
+  cross-platform (win11toast su Windows, plyer su Linux/Mac) con `notify_damaged`
+  agganciato a `report.newly_damaged` (avviso solo alla transizione verso
+  danneggiato, mai ripetuto). Invio su thread breve (non blocca lo scheduler) e
+  a prova di errore. Agganciato in `app.py` con callback combinato
+  refresh-UI + notifica. Testato.
+- **Step 11 — System tray** (`tray/tray_icon.py`, v1.0.0): classe `TrayIcon`
+  (pystray) con icona teal generata da Pillow e menu Open / Exit. In `app.py`:
+  chiusura finestra → nascondi in tray (continua a scansionare), Open → mostra,
+  Exit → ferma scheduler+tray e chiude davvero. Avvio difensivo: se il tray non
+  è disponibile, l'app degrada (la chiusura finestra termina) senza crashare.
+  `requirements.txt`: aggiunto `python-xlib` (Linux) per il backend xorg di
+  pystray quando manca PyGObject (es. XFCE). Testato (icona, fallback, sintassi).
 
 ### Note sui temi (Franken UI 2.1.2)
 - I 16 temi colore (zinc, slate, teal, ...) NON sono file separati: stanno tutti
@@ -134,6 +147,20 @@ e il progetto adotta il [Versionamento Semantico](https://semver.org/lang/it/).
   - Identificativo del contenuto: colonna `file_hash` (stesso nome di
     `PartMet.file_hash`; neutra rispetto a MD4/MD5, lunga 32 caratteri hex).
   - Database file: `data/metguardian.db`.
+
+### Fixed
+- **Tray pienamente funzionante su Linux senza pacchetti di sistema**
+  (`tray/tray_icon.py` v2.0.0): doppio backend dietro un'unica `TrayIcon` —
+  **Qt `QSystemTrayIcon`** su Linux (menu + clic completi, tutto via pip, sfrutta
+  l'app Qt già usata da pywebview; creazione marshalata sul thread GUI via
+  `QTimer.singleShot`) e **pystray** su Windows/macOS. Niente più richiesta di
+  installare PyGObject/AppIndicator all'utente. Avvio difensivo invariato.
+- **Tray non interattiva su Linux/XFCE (e icona fantasma)**: risolto dal punto
+  sopra (prima ripiegava sul backend pystray `xorg`, privo di menu).
+- **Colonna File vuota nella UI**: il troncamento usava `max-width: 0` sul
+  `<div>` interno, che in QtWebEngine collassava la larghezza a zero nascondendo
+  il nome. Corretto con `table-layout: fixed` sulla tabella ed ellissi su
+  `.mg-filename` (`max-width: 100%`). Il dato era corretto in DB e parser.
 
 ### Note tecniche
 - **QtWebEngine su Linux/Wayland**: su alcuni compositor la finestra rende nera
