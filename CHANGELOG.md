@@ -16,12 +16,50 @@ e il progetto adotta il [Versionamento Semantico](https://semver.org/lang/it/).
 ## [Non rilasciato]
 
 ### In corso
-- **Documentazione di `PartMetParser`** (primo deliverable di codice).
-- **Step 1 — Database** (schema SQLite, init, WAL, repository).
+- **Step 8 — UI: lista file e log** (`ui/index.html`, `ui/js/app.js`).
 
 ### Completato
 - **Step 0 — Scaffolding**: struttura cartelle creata, ambiente virtuale
   funzionante, dipendenze installate.
+- **Documentazione di `PartMetParser`** (v1.0.0): docstring PEP 257 + commenti,
+  logica invariata. Da collocare in `core/parser.py`.
+- **Step 1 — Database**: `db/schema.sql`, `db/database.py`, `db/repository.py`.
+  4 tabelle in WAL, CRUD testati end-to-end sugli scenari della macchina a stati.
+  Colonna identificativa del contenuto: `file_hash`.
+- **Step 2 — Lettura e classificazione** (`core/reader.py`, v1.0.0): classe
+  `MetReader` che traduce l'esito del parser in `OK` / `INACCESSIBLE` / `DAMAGED`,
+  con guardia `mtime` per non segnalare come danneggiato un file in scrittura.
+  Estrae le 3 informazioni (numero dal nome, `file_hash` hex, `filename`).
+  Testato su file valido, corrotto, fresco, mancante e troncato.
+- **Step 3 — Scansione cartella temp** (`core/scanner.py`, v1.0.0): classe
+  `TempScanner` che elenca i soli `*.part.met` (esclude `.part` e
+  `.part.met.bak`), ne ricava il numero e li ordina. Gestisce cartella
+  inesistente/non valida con eccezioni chiare. Testato.
+- **Step 4 — Backup manager** (`core/backup_manager.py`, v1.0.0): classe
+  `BackupManager` che salva il `.met` valido come `<file_hash>.met` con
+  scrittura atomica (temp + replace), sovrascrive a parità di hash, valida
+  l'hash (anti path-traversal). I backup non vengono mai cancellati dal flusso
+  normale. Testato.
+- **Step 5 — Macchina a stati** (`core/state_machine.py`, v1.0.0): classe
+  `StateMachine.run_cycle()` che orchestra scanner + reader + backup +
+  repository. Implementa l'intera "vera chiave" (OK / INACCESSIBLE / DAMAGED /
+  sostituzione hash / archivio), preserva l'hash quando il file non è valido,
+  logga solo le transizioni, segnala i nuovi danneggiati per la notifica, e
+  isola gli errori per-file con `try/except` + logger. Restituisce uno
+  `ScanReport`. Testato su sequenza multi-ciclo completa.
+- **Step 6 — Scheduler** (`scheduler/worker.py`, v1.0.0): classe
+  `ScanScheduler` con thread daemon che esegue `run_cycle()` a intervalli
+  (letti dalla config a ogni giro), `scan_now()` sincrono, avvio/arresto puliti,
+  callback `on_cycle_complete` per UI e notifiche. Cambio cartelle a caldo senza
+  riavvio. Aggiunto `core/logging_setup.py` (v1.0.0): logger `metguardian` con
+  file rotante (`logs/metguardian.log`) + console per transizioni e anomalie.
+  Testato (avvio, ciclo periodico, scan_now, cambio cartella, stop, file log).
+- **Step 7 — Bridge pywebview** (`api/bridge.py`, v1.0.0): classe `Bridge`
+  (`js_api`) con i metodi chiamabili dalla UI: `get_active_files`, `get_archive`,
+  `get_log`, `get_config`, `get_status`, `save_config` (valida cartelle con
+  warning, ignora chiavi ignote, lancia scan), `scan_now`, `set_theme`,
+  `pick_folder` (selettore nativo). `on_scan_complete` spinge l'evento
+  `metguardian:scan-complete` alla UI per il refresh. Testato.
 
 ### Added
 - Documenti di progetto: `ROADMAP.md`, `STRUCTURE.md`, `README.md`.
@@ -64,6 +102,14 @@ e il progetto adotta il [Versionamento Semantico](https://semver.org/lang/it/).
   inaccessibile/danneggiato vive in un livello superiore (`core/reader.py`).
 - **Convenzioni di codice**: docstring in stile PEP 257 + commenti inline,
   scritti in prima persona; `pathlib` per tutti i percorsi.
+- **Lingua del codice**: tutto il codice (docstring, commenti, identificatori)
+  e' scritto in **inglese**. Di conseguenza stati e motivi sono in inglese:
+  - Stati: `OK`, `INACCESSIBLE`, `DAMAGED` (erano OK / INACCESSIBILE / DANNEGGIATO).
+  - Motivi archivio: `REPLACED` (sostituito), `REMOVED_OR_COMPLETED` (rimosso/completato).
+  - Tabelle: `active_files`, `archived_files`, `event_log`, `config`.
+  - Identificativo del contenuto: colonna `file_hash` (stesso nome di
+    `PartMet.file_hash`; neutra rispetto a MD4/MD5, lunga 32 caratteri hex).
+  - Database file: `data/metguardian.db`.
 
 ### Note tecniche
 - **Setup Linux**: `PyGObject` non si installa via pip (richiede compilazione).

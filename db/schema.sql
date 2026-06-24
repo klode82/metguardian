@@ -10,12 +10,12 @@
 -- Currently monitored downloads.
 -- One row per "slot" (the part.met number, e.g. "493"). The number is unique:
 -- at any given time only one active file can occupy a given slot.
--- md4 / file_name / backup_path are NULL when the file has never been read
+-- file_hash / file_name / backup_path are NULL when the file has never been read
 -- successfully (e.g. it appeared already damaged or inaccessible).
 CREATE TABLE IF NOT EXISTS active_files (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
     number        TEXT    NOT NULL UNIQUE,          -- slot number from the file name (e.g. "493")
-    md4           TEXT,                              -- hex MD4 global hash; NULL if not yet read
+    file_hash     TEXT,                              -- hex global file hash (from PartMet.file_hash); NULL if not yet read
     file_name     TEXT,                              -- value of the "filename" tag
     state         TEXT    NOT NULL,                  -- OK | INACCESSIBLE | DAMAGED
     backup_path   TEXT,                              -- path of the backed-up .met (named by MD4)
@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS active_files (
 CREATE TABLE IF NOT EXISTS archived_files (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
     number        TEXT,
-    md4           TEXT,
+    file_hash     TEXT,
     file_name     TEXT,
     backup_path   TEXT,
     reason        TEXT    NOT NULL,                  -- REPLACED | REMOVED_OR_COMPLETED
@@ -44,7 +44,7 @@ CREATE TABLE IF NOT EXISTS archived_files (
 CREATE TABLE IF NOT EXISTS event_log (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
     number          TEXT,
-    md4             TEXT,
+    file_hash       TEXT,
     previous_state  TEXT,                            -- NULL on first appearance
     new_state       TEXT    NOT NULL,
     message         TEXT,
@@ -60,7 +60,7 @@ CREATE TABLE IF NOT EXISTS config (
 -- Indexes for the most common lookups.
 CREATE INDEX IF NOT EXISTS idx_active_number   ON active_files(number);
 CREATE INDEX IF NOT EXISTS idx_log_timestamp   ON event_log(timestamp);
-CREATE INDEX IF NOT EXISTS idx_archive_md4     ON archived_files(md4);
+CREATE INDEX IF NOT EXISTS idx_archive_file_hash ON archived_files(file_hash);
 
 -- Default configuration. Inserted only if the key is missing, so user changes
 -- are never overwritten on restart.

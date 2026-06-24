@@ -19,7 +19,7 @@ STATE_INACCESSIBLE = "INACCESSIBLE" # present but not readable right now (locked
 STATE_DAMAGED = "DAMAGED"           # opens but cannot be parsed; NOT storicized, user is notified
 
 # --- Archive reasons -------------------------------------------------------
-REASON_REPLACED = "REPLACED"                       # same slot now holds a different MD4
+REASON_REPLACED = "REPLACED"                       # same slot now holds a different file_hash
 REASON_REMOVED_OR_COMPLETED = "REMOVED_OR_COMPLETED"  # file gone from temp (deleted or finished)
 
 
@@ -64,15 +64,15 @@ class Repository:
             ).fetchall()
             return [dict(r) for r in rows]
 
-    def upsert_active(self, number, md4, file_name, state, backup_path):
+    def upsert_active(self, number, file_hash, file_name, state, backup_path):
         """Insert a new active slot or update the existing one.
 
-        Keyed on ``number``. On update I refresh md4, file name, state and
+        Keyed on ``number``. On update I refresh file_hash, file name, state and
         backup path, and bump ``last_updated``. ``first_seen`` is preserved.
 
         Args:
             number (str): slot number.
-            md4 (str | None): hex MD4 global hash, or ``None`` if unknown.
+            file_hash (str | None): hex global file hash, or ``None`` if unknown.
             file_name (str | None): the "filename" tag value, or ``None``.
             state (str): one of the ``STATE_*`` constants.
             backup_path (str | None): path of the stored .met, or ``None``.
@@ -81,23 +81,23 @@ class Repository:
             c.execute(
                 """
                 INSERT INTO active_files
-                    (number, md4, file_name, state, backup_path, first_seen, last_updated)
+                    (number, file_hash, file_name, state, backup_path, first_seen, last_updated)
                 VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'))
                 ON CONFLICT(number) DO UPDATE SET
-                    md4          = excluded.md4,
+                    file_hash    = excluded.file_hash,
                     file_name    = excluded.file_name,
                     state        = excluded.state,
                     backup_path  = excluded.backup_path,
                     last_updated = datetime('now')
                 """,
-                (number, md4, file_name, state, backup_path),
+                (number, file_hash, file_name, state, backup_path),
             )
 
     def set_active_state(self, number, state):
         """Update only the state of a slot (and its ``last_updated``).
 
         I use this when a file becomes inaccessible or damaged but I must NOT
-        touch its md4 or backup (e.g. it was OK before and is now locked).
+        touch its file_hash or backup (e.g. it was OK before and is now locked).
 
         Args:
             number (str): slot number.
@@ -145,12 +145,12 @@ class Repository:
             c.execute(
                 """
                 INSERT INTO archived_files
-                    (number, md4, file_name, backup_path, reason, first_seen, archived_at)
+                    (number, file_hash, file_name, backup_path, reason, first_seen, archived_at)
                 VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
                 """,
                 (
                     row["number"],
-                    row["md4"],
+                    row["file_hash"],
                     row["file_name"],
                     row["backup_path"],
                     reason,
@@ -176,14 +176,14 @@ class Repository:
     # event_log
     # ------------------------------------------------------------------ #
 
-    def add_log(self, number, md4, previous_state, new_state, message):
+    def add_log(self, number, file_hash, previous_state, new_state, message):
         """Append a state-transition entry to the log.
 
         I call this only when a slot actually changes state.
 
         Args:
             number (str): slot number.
-            md4 (str | None): hex MD4, if known.
+            file_hash (str | None): hex global file hash, if known.
             previous_state (str | None): the prior state, or ``None`` if first seen.
             new_state (str): the new state.
             message (str): human-readable description of the transition.
@@ -191,10 +191,10 @@ class Repository:
         with self.db.connect() as c:
             c.execute(
                 """
-                INSERT INTO event_log (number, md4, previous_state, new_state, message)
+                INSERT INTO event_log (number, file_hash, previous_state, new_state, message)
                 VALUES (?, ?, ?, ?, ?)
                 """,
-                (number, md4, previous_state, new_state, message),
+                (number, file_hash, previous_state, new_state, message),
             )
 
     def list_log(self, limit=200):
