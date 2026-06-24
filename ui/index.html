@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<!-- The theme is chosen by a class on <html>: uk-theme-<color> (+ optional
+     "dark"). All 16 themes live inside core.min.css. In Step 9 this class will
+     be set dynamically from the saved configuration. -->
+<html lang="en" class="uk-theme-teal">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MetGuardian</title>
+
+    <!-- Franken UI components (UIkit is bundled into core.iife.js). -->
+    <link rel="stylesheet" href="css/core.min.css" />
+    <!-- Our own layout and status styling. -->
+    <link rel="stylesheet" href="css/app.css" />
+</head>
+<body>
+    <div class="mg-shell">
+
+        <!-- Header: identity, live status, primary action. -->
+        <header class="mg-header">
+            <div class="mg-brand">
+                <span class="mg-brand-mark" uk-icon="icon: shield; ratio: 1.2"></span>
+                <div>
+                    <h1 class="mg-title">MetGuardian</h1>
+                    <p class="mg-subtitle">Smart backups for eMule part.met files</p>
+                </div>
+            </div>
+
+            <div class="mg-header-right">
+                <div class="mg-status-line" id="status-line">
+                    <span class="mg-dot" id="status-dot"></span>
+                    <span id="status-text">Starting…</span>
+                </div>
+                <button class="uk-btn uk-btn-primary uk-btn-sm" id="scan-now-btn" type="button">
+                    <span uk-icon="icon: refresh; ratio: 0.9"></span>
+                    Scan now
+                </button>
+            </div>
+        </header>
+
+        <!-- Damaged-files banner: the whole reason this app exists.
+             Hidden unless at least one file is currently damaged. -->
+        <div class="mg-banner" id="damaged-banner" hidden>
+            <div class="uk-alert uk-alert-destructive" role="alert">
+                <span class="mg-banner-icon" uk-icon="icon: warning"></span>
+                <div>
+                    <p class="uk-alert-title">Damaged files detected</p>
+                    <p id="damaged-banner-text" class="mg-banner-text"></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section tabs. -->
+        <nav class="mg-tabs" id="tabs">
+            <button class="mg-tab is-active" data-tab="active" type="button">
+                Monitored <span class="mg-tab-count" id="count-active">0</span>
+            </button>
+            <button class="mg-tab" data-tab="archive" type="button">
+                Archive <span class="mg-tab-count" id="count-archive">0</span>
+            </button>
+            <button class="mg-tab" data-tab="log" type="button">
+                Activity log
+            </button>
+        </nav>
+
+        <main class="mg-main">
+
+            <!-- MONITORED (active) ----------------------------------------- -->
+            <section class="mg-panel" data-panel="active">
+                <div class="uk-card">
+                    <table class="uk-table uk-table-divider uk-table-hover mg-table">
+                        <thead>
+                            <tr>
+                                <th class="mg-col-num">#</th>
+                                <th>File</th>
+                                <th class="mg-col-status">Status</th>
+                                <th class="mg-col-hash">Hash</th>
+                                <th class="mg-col-time">Updated</th>
+                            </tr>
+                        </thead>
+                        <tbody id="active-rows"></tbody>
+                    </table>
+                    <div class="mg-empty" id="active-empty" hidden>
+                        <p>No files are being monitored yet.</p>
+                        <p class="mg-empty-hint">Set your eMule temp and backup folders in Settings, then run a scan.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ARCHIVE ----------------------------------------------------- -->
+            <section class="mg-panel" data-panel="archive" hidden>
+                <div class="uk-card">
+                    <table class="uk-table uk-table-divider uk-table-hover mg-table">
+                        <thead>
+                            <tr>
+                                <th class="mg-col-num">#</th>
+                                <th>File</th>
+                                <th class="mg-col-hash">Hash</th>
+                                <th class="mg-col-reason">Reason</th>
+                                <th class="mg-col-time">Archived</th>
+                            </tr>
+                        </thead>
+                        <tbody id="archive-rows"></tbody>
+                    </table>
+                    <div class="mg-empty" id="archive-empty" hidden>
+                        <p>Nothing archived yet.</p>
+                        <p class="mg-empty-hint">Completed, removed or replaced downloads will appear here. Their backups stay on disk.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ACTIVITY LOG ------------------------------------------------ -->
+            <section class="mg-panel" data-panel="log" hidden>
+                <div class="uk-card">
+                    <table class="uk-table uk-table-divider mg-table">
+                        <thead>
+                            <tr>
+                                <th class="mg-col-time">When</th>
+                                <th class="mg-col-num">#</th>
+                                <th class="mg-col-change">Change</th>
+                                <th>Detail</th>
+                            </tr>
+                        </thead>
+                        <tbody id="log-rows"></tbody>
+                    </table>
+                    <div class="mg-empty" id="log-empty" hidden>
+                        <p>No activity recorded yet.</p>
+                        <p class="mg-empty-hint">Only state changes are logged, never repeated confirmations.</p>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Franken UI JavaScript: core (UIkit + components) and icons. -->
+    <script src="js/core.iife.js"></script>
+    <script src="js/icon.iife.js"></script>
+    <!-- Our application logic. -->
+    <script src="js/app.js"></script>
+</body>
+</html>

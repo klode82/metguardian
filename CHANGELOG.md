@@ -16,7 +16,13 @@ e il progetto adotta il [Versionamento Semantico](https://semver.org/lang/it/).
 ## [Non rilasciato]
 
 ### In corso
-- **Step 8 — UI: lista file e log** (`ui/index.html`, `ui/js/app.js`).
+- **Step 9 — UI: impostazioni** (cartelle configurabili, tema persistente).
+
+### Anticipato
+- **`app.py` (bootstrap minimale, v1.0.0)**: entry point che collega logging,
+  DB, state machine, scheduler, bridge e finestra pywebview. Permette di lanciare
+  e vedere la dashboard dal vivo. NON ancora incluso: tray (Step 11) — per ora la
+  chiusura della finestra termina l'app — e notifiche (Step 10).
 
 ### Completato
 - **Step 0 — Scaffolding**: struttura cartelle creata, ambiente virtuale
@@ -60,6 +66,18 @@ e il progetto adotta il [Versionamento Semantico](https://semver.org/lang/it/).
   warning, ignora chiavi ignote, lancia scan), `scan_now`, `set_theme`,
   `pick_folder` (selettore nativo). `on_scan_complete` spinge l'evento
   `metguardian:scan-complete` alla UI per il refresh. Testato.
+- **Step 8 — UI: lista file e log** (`ui/index.html`, `ui/css/app.css`,
+  `ui/js/app.js`): dashboard con header+stato, banner danneggiati, tab
+  Monitored/Archive/Activity log, badge di stato (OK / Pending / Damaged),
+  refresh automatico sull'evento `metguardian:scan-complete`, pulsante
+  "Scan now". UI in inglese. Tema **Teal** (light) di default.
+  Asset Franken UI: solo `core.min.css` + `core.iife.js` + `icon.iife.js`.
+
+### Note sui temi (Franken UI 2.1.2)
+- I 16 temi colore (zinc, slate, teal, ...) NON sono file separati: stanno tutti
+  in `core.min.css` e si attivano con una classe su `<html>` (`uk-theme-<colore>`),
+  più `.dark` per il dark mode, `uk-radii-*`, `uk-shadows-*`, `uk-font-*`.
+  La persistenza del tema (Step 9) sarà quindi solo salvare/applicare la classe.
 
 ### Added
 - Documenti di progetto: `ROADMAP.md`, `STRUCTURE.md`, `README.md`.
