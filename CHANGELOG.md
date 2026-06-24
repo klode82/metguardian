@@ -16,7 +16,12 @@ e il progetto adotta il [Versionamento Semantico](https://semver.org/lang/it/).
 ## [Non rilasciato]
 
 ### In corso
-- **Step 0 — Scaffolding**: struttura cartelle, ambiente virtuale, dipendenze.
+- **Documentazione di `PartMetParser`** (primo deliverable di codice).
+- **Step 1 — Database** (schema SQLite, init, WAL, repository).
+
+### Completato
+- **Step 0 — Scaffolding**: struttura cartelle creata, ambiente virtuale
+  funzionante, dipendenze installate.
 
 ### Added
 - Documenti di progetto: `ROADMAP.md`, `STRUCTURE.md`, `README.md`.
@@ -59,6 +64,16 @@ e il progetto adotta il [Versionamento Semantico](https://semver.org/lang/it/).
   inaccessibile/danneggiato vive in un livello superiore (`core/reader.py`).
 - **Convenzioni di codice**: docstring in stile PEP 257 + commenti inline,
   scritti in prima persona; `pathlib` per tutti i percorsi.
+
+### Note tecniche
+- **Setup Linux**: `PyGObject` non si installa via pip (richiede compilazione).
+  Si usa il pacchetto di sistema (`python3-gi`, `gir1.2-gtk-3.0`,
+  `gir1.2-webkit2-4.1`) e si crea il venv con `--system-site-packages`.
+  Per questo `requirements.txt` non contiene la riga `PyGObject`.
+- **Asset UI rinviati**: il download di Franken UI / UIkit in locale e' stato
+  spostato allo Step 8 (costruzione UI), perche' il backend (Step 1-6) non li
+  usa. Versione di riferimento da "pinnare": `franken-ui@2.1.2` (il progetto e'
+  in transizione verso un nuovo corso "0build", da rivalutare al momento).
 
 ---
 
