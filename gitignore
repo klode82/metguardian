@@ -1,0 +1,34 @@
+# MetGuardian - File e cartelle da escludere dal versionamento
+
+# Dati locali generati a runtime: database SQLite e file di backup.
+# NON vanno su Git (sono dati dell'utente, non codice).
+data/
+
+# Ambiente virtuale Python
+venv/
+.venv/
+env/
+
+# Cache e bytecode di Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Log applicativo su file (lo generiamo a runtime)
+*.log
+logs/
+
+# File di build / packaging (PyInstaller)
+build/
+dist/
+*.spec
+
+# File di sistema
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Configurazioni locali di editor/IDE
+.vscode/
+.idea/
+*.swp
