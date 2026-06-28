@@ -113,19 +113,77 @@ Ogni step ha un obiettivo e una *Definition of Done* (DoD): quando è "fatto".
 - Chiusura della finestra → l'app resta nel tray e continua a scansionare; **Exit** chiude davvero
 - **DoD:** chiudendo la finestra l'app vive nel tray; **Open** la riapre; **Exit** termina tutto.
 
-### Step 12 — Rifiniture e robustezza
+### Step 12 — Ripristino del file part.met
+Recupero di un download quando il suo `.part.met` in cartella Temp si è
+danneggiato (es. dopo un'interruzione di corrente). Il ripristino si basa sul
+**numero del file** (001, 032, …), NON sull'MD4: il `.met` danneggiato non è
+leggibile, quindi l'hash non è disponibile. La sorgente è il backup dell'ultima
+versione valida, che la macchina a stati conserva nel record attivo
+(`backup_path` resta valorizzato anche quando lo stato passa a DAMAGED).
+
+Requisiti funzionali:
+- Solo i file **DAMAGED che hanno un backup** (`backup_path` valorizzato) sono
+  ripristinabili. Un file mai stato valido (hash/backup nulli) non lo è.
+- **Selezione multipla** in lista: comparsa di un pulsante **"Restore selected"**
+  quando almeno un file ripristinabile è selezionato.
+- Pulsante **"Restore all"** quando esiste **almeno un** file danneggiato
+  ripristinabile.
+- **Modal di avvertimento** prima di procedere: l'utente DEVE chiudere eMule.
+  MetGuardian è a servizio di una *cartella*, non del processo eMule (la cartella
+  Temp può stare su un'altra macchina/VM), quindi non può verificare da sé se
+  eMule è in esecuzione: è responsabilità dell'utente.
+- Per ogni file confermato:
+  1. eliminare `<temp>/<num>.part.met` e `<temp>/<num>.part.met.bak` (se esistono);
+  2. **copiare** (non spostare) il backup `<num>` da `backup_path` a
+     `<temp>/<num>.part.met`;
+  3. avvisare dell'esito (successo / errore per ciascun file).
+- Dopo il ripristino, lanciare una scansione: al giro successivo il file torna
+  `OK` (transizione DAMAGED → OK loggata).
+- Backend dedicato `core/restore.py` (`RestoreManager`) + metodo bridge
+  `restore_files(numbers)` che ritorna l'esito per-file. Robusto: backup
+  mancante, cartella temp non valida, errori di I/O → messaggio chiaro, nessun
+  crash.
+- **DoD:** selezionando uno o più file danneggiati e confermando la modal, i
+  `.met` vengono ripristinati nella Temp e al giro dopo tornano OK; gli errori
+  per-file sono riportati senza interrompere gli altri.
+
+### Step 13 — Dettaglio del singolo part.met
+Una scheda (modal) che mostra **tutti** i dati di un `.part.met`.
+- Pulsante **"Detail"** per riga (Monitored e Archive).
+- Dati mostrati: versione, MD4 (hex), nome file, dimensione totale (con
+  `filesize` + `filesize_hi`), data, numero di parti, **gap** con calcolo di
+  scaricato/mancante e percentuale, e l'elenco completo dei tag.
+- Sorgente: si ri-parsa il `.met` su richiesta — il file in Temp se leggibile,
+  altrimenti il **backup** (utile per i danneggiati: mostra com'era l'ultima
+  versione valida).
+- Backend: helper che usa `PartMetParser` per costruire un dizionario ricco;
+  metodo bridge `get_detail(number)`.
+- **DoD:** premendo Detail si apre una modal con i dati completi del file
+  (o del suo backup se il file in Temp non è leggibile).
+
+### Step 14 — Icona e branding
+- Icona definitiva: mulo (mascotte eMule) con cappuccio grigio da "stregone",
+  muso in evidenza, testa leggermente china come in cammino. Logo testuale
+  "MetGuardian" in stile medievale.
+- Sostituire `make_tray_image()` per caricare l'icona da `ui/assets/`
+  (PNG ad alta risoluzione) con fallback allo scudo generato.
+- Generare `.ico` multi-risoluzione per la finestra e l'eseguibile Windows.
+- **DoD:** l'app mostra l'icona definitiva su finestra e tray; `.ico` pronto per
+  il packaging.
+
+### Step 15 — Rifiniture e robustezza
 - Gestione errori (cartella temp inesistente, permessi, DB lockato)
 - Log applicativo minimo per il debug
 - **DoD:** l'app non crasha negli scenari di errore comuni.
 
-### Step 13 — Packaging
+### Step 16 — Packaging
 - Eseguibile Windows con **PyInstaller** (un singolo `.exe` o cartella)
-- Icona, test su macchina pulita
+- Icona definitiva, test su macchina pulita
 - **DoD:** l'app parte con doppio clic su un Windows senza Python installato.
 
-### Step 14 — Test end-to-end
-- Prova con file `.part.met` reali, inclusi casi limite (corrotto, in scrittura, sostituito, cancellato)
-- **DoD:** tutti gli scenari della macchina a stati verificati su file veri.
+### Step 17 — Test end-to-end
+- Prova con file `.part.met` reali, inclusi casi limite (corrotto, in scrittura, sostituito, cancellato, ripristinato)
+- **DoD:** tutti gli scenari della macchina a stati e del ripristino verificati su file veri.
 
 ---
 

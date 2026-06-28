@@ -289,10 +289,18 @@ class PartMetParser:
                 assert self.partmet.version in (0xE0, 0xE1, 0xE2), \
                     f"Unsupported version: {self.partmet.version:#x}"
 
-                # 16 bytes: global hash (MD4) of the file.
-                self.partmet.file_hash = self.file.read(16)
-                # 4 bytes: internal date of the file.
-                self.partmet.date = self.read_uint32()
+                # The layout of date and hash depends on the version:
+                #   0xE0 (old eMule / aMule): date(4) first, then hash(16)
+                #   0xE1, 0xE2 (newer format): hash(16) first, then date(4)
+                # Reading them in the wrong order embeds the mutable date bytes
+                # in the hash, causing the hash to change on every eMule write
+                # and triggering false REPLACED archiving each scan cycle.
+                if self.partmet.version == 0xE0:
+                    self.partmet.date = self.read_uint32()
+                    self.partmet.file_hash = self.file.read(16)
+                else:   # 0xE1 and 0xE2: hash comes first
+                    self.partmet.file_hash = self.file.read(16)
+                    self.partmet.date = self.read_uint32()
 
                 # 2 bytes: number of part hashes; then N 16-byte blocks.
                 numParts = self.read_uint16()

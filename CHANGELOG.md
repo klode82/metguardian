@@ -15,8 +15,29 @@ e il progetto adotta il [Versionamento Semantico](https://semver.org/lang/it/).
 
 ## [Non rilasciato]
 
-### In corso
-- **Step 12 — Rifiniture e robustezza** (gestione errori, edge case).
+### Bugfix
+
+- **Bug critico nel parser (version 0xE0)**: il formato `.part.met` versione `0xE0`
+  (eMule vecchio / aMule) ha il layout `date(4) → hash(16)`, mentre le versioni
+  `0xE1`/`0xE2` usano `hash(16) → date(4)`. Il parser leggeva sempre hash prima
+  di date: per i file `0xE0` i 4 byte del timestamp eMule finivano nei primi 4 byte
+  dell'"hash", che cambiava ad ogni scrittura eMule → archivio `REPLACED` a ogni
+  ciclo di scansione. Analisi confermata su 488 file reali: tutti `0xE0`, tutti
+  affetti. Fix: `parser.py` ora biforca la lettura in base a `version`. Dopo il fix
+  il DB va resettato perché i record esistenti hanno l'hash errato.
+
+### In corso / pianificato
+- **Step 13 — Dettaglio del singolo part.met**: modal con tutti i dati del
+  `.met` (versione, MD4, nome, dimensione, data, n. parti, gap con
+  scaricato/mancante e %, tag). Ri-parsing on-demand del file in Temp o del
+  backup (per i danneggiati). Bridge `get_detail(number)`.
+- **Step 14 — Icona e branding**: icona definitiva (mulo eMule con cappuccio
+  grigio da "stregone", muso in evidenza, testa china; logo "MetGuardian" stile
+  medievale). `make_tray_image()` caricherà l'icona da `ui/assets/` con fallback;
+  `.ico` multi-risoluzione per finestra ed eseguibile.
+- **Step 15 — Rifiniture e robustezza**, **Step 16 — Packaging (.exe Windows)**,
+  **Step 17 — Test end-to-end** (numerazione aggiornata dopo l'inserimento dei
+  due nuovi step prima della building finale).
 
 ### Anticipato
 - **`app.py` (bootstrap minimale, v1.0.0)**: entry point che collega logging,
@@ -84,6 +105,18 @@ e il progetto adotta il [Versionamento Semantico](https://semver.org/lang/it/).
   danneggiato, mai ripetuto). Invio su thread breve (non blocca lo scheduler) e
   a prova di errore. Agganciato in `app.py` con callback combinato
   refresh-UI + notifica. Testato.
+- **Step 12 — Ripristino del file part.met** (`core/restore.py`, v1.0.0):
+  classe `RestoreManager.restore_files()` che ripristina i `.met` DAMAGED dalla
+  copia di backup. Per ogni slot: elimina `<num>.part.met` e `<num>.part.met.bak`
+  dalla cartella Temp, **copia** il backup come `<num>.part.met`, poi il bridge
+  lancia una scansione immediata → DAMAGED→OK. Errori per-file isolati, mai crash.
+  Bridge `restore_files(numbers)` (`api/bridge.py`): espone il metodo alla UI,
+  aggiunge il campo `restorable` a `get_active_files()` (DAMAGED + backup fisico
+  su disco). UI: colonna checkbox nella tab Monitored (solo per file ripristinabili),
+  toolbar con "Restore selected" / "Restore all damaged", dialog di avvertimento
+  ("chiudi eMule") con **componente generico** `showDialog()` riutilizzabile (icona
+  configurabile, titolo, body HTML, pulsanti configurabili). Stili Franken UI
+  (`uk-modal` + overlay). Risultati per-file mostrati sotto la toolbar.
 - **Step 11 — System tray** (`tray/tray_icon.py`, v1.0.0): classe `TrayIcon`
   (pystray) con icona teal generata da Pillow e menu Open / Exit. In `app.py`:
   chiusura finestra → nascondi in tray (continua a scansionare), Open → mostra,
@@ -150,11 +183,14 @@ e il progetto adotta il [Versionamento Semantico](https://semver.org/lang/it/).
 
 ### Fixed
 - **Tray pienamente funzionante su Linux senza pacchetti di sistema**
-  (`tray/tray_icon.py` v2.0.0): doppio backend dietro un'unica `TrayIcon` —
+  (`tray/tray_icon.py` v2.1.0): doppio backend dietro un'unica `TrayIcon` —
   **Qt `QSystemTrayIcon`** su Linux (menu + clic completi, tutto via pip, sfrutta
-  l'app Qt già usata da pywebview; creazione marshalata sul thread GUI via
-  `QTimer.singleShot`) e **pystray** su Windows/macOS. Niente più richiesta di
-  installare PyGObject/AppIndicator all'utente. Avvio difensivo invariato.
+  l'app Qt già usata da pywebview) e **pystray** su Windows/macOS. Il marshaling
+  sul thread GUI usa un QObject ponte con `Signal` in `QueuedConnection` (la
+  firma `QTimer.singleShot(msec, context, slot)` non esiste in PyQt6). Niente più
+  richiesta di installare PyGObject/AppIndicator all'utente.
+  **Verificato dal vivo su Linux Mint XFCE**: icona cliccabile, menu Open/Exit,
+  nascondi-in-tray e riapertura funzionanti.
 - **Tray non interattiva su Linux/XFCE (e icona fantasma)**: risolto dal punto
   sopra (prima ripiegava sul backend pystray `xorg`, privo di menu).
 - **Colonna File vuota nella UI**: il troncamento usava `max-width: 0` sul

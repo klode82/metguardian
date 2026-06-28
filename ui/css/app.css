@@ -347,3 +347,85 @@ body {
 .mg-warnings div { margin-top: 2px; }
 
 .mg-tab-settings { margin-left: auto; }
+
+/* Restore toolbar ---------------------------------------------------------- */
+
+.mg-col-check {
+    width: 36px;
+    text-align: center;
+}
+
+.mg-restore-check {
+    width: 15px;
+    height: 15px;
+    cursor: pointer;
+    accent-color: hsl(var(--primary));
+}
+
+.mg-restore-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    border-top: 1px solid hsl(var(--border));
+}
+
+.mg-restore-all-btn {
+    color: hsl(var(--destructive));
+    border-color: hsl(var(--destructive) / 0.5);
+}
+.mg-restore-all-btn:hover {
+    background: hsl(var(--destructive) / 0.08);
+    border-color: hsl(var(--destructive));
+}
+
+.mg-restore-hint {
+    margin-left: 4px;
+    font-size: 12px;
+    color: hsl(var(--muted-foreground));
+}
+
+/* Restore results ----------------------------------------------------------- */
+
+.mg-restore-results {
+    padding: 10px 16px;
+    border-top: 1px solid hsl(var(--border));
+    font-size: 13px;
+}
+
+.mg-restore-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 3px 0;
+}
+
+.mg-restore-item--ok  { color: hsl(var(--mg-ok)); }
+.mg-restore-item--err { color: hsl(var(--destructive)); }
+
+.mg-restore-working {
+    color: hsl(var(--muted-foreground));
+    font-style: italic;
+}
+
+.mg-restore-global-error { color: hsl(var(--destructive)); }
+
+/* Generic dialog (Franken UI uk-modal, minimal overrides) ------------------- */
+
+.mg-dialog-title-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.mg-dialog-icon--warn { color: hsl(var(--destructive)); }
+.mg-dialog-icon--info { color: hsl(var(--primary)); }
+
+.mg-dialog-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+/* The muted-foreground color is used for secondary text inside dialogs. */
+.uk-modal-body .mg-muted { color: hsl(var(--muted-foreground)); }

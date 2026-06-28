@@ -75,6 +75,7 @@
                     <table class="uk-table uk-table-divider uk-table-hover mg-table">
                         <thead>
                             <tr>
+                                <th class="mg-col-check"></th>
                                 <th class="mg-col-num">#</th>
                                 <th>File</th>
                                 <th class="mg-col-status">Status</th>
@@ -84,6 +85,18 @@
                         </thead>
                         <tbody id="active-rows"></tbody>
                     </table>
+                    <!-- Restore toolbar: shown only when ≥1 damaged restorable file exists -->
+                    <div class="mg-restore-bar" id="restore-bar" hidden>
+                        <button class="uk-btn uk-btn-sm mg-restore-selected-btn" id="restore-selected-btn" type="button" disabled>
+                            Restore selected
+                        </button>
+                        <button class="uk-btn uk-btn-sm mg-restore-all-btn" id="restore-all-btn" type="button">
+                            Restore all damaged
+                        </button>
+                        <span class="mg-restore-hint">eMule must be closed before restoring</span>
+                    </div>
+                    <!-- Per-file restore results -->
+                    <div class="mg-restore-results" id="restore-results" hidden></div>
                     <div class="mg-empty" id="active-empty" hidden>
                         <p>No files are being monitored yet.</p>
                         <p class="mg-empty-hint">Set your eMule temp and backup folders in Settings, then run a scan.</p>
@@ -172,6 +185,28 @@
             </section>
 
         </main>
+    </div>
+
+    <!-- Generic dialog component (Franken UI / UIkit uk-modal).
+         showDialog({icon, title, body, buttons}) in app.js populates and opens it.
+         Icon slots are pre-rendered at load time so UIkit processes uk-icon
+         attributes; JS shows only the requested one at runtime. -->
+    <div id="mg-dialog" uk-modal>
+        <div class="uk-modal-dialog">
+            <div class="uk-modal-header">
+                <div class="mg-dialog-title-row">
+                    <span data-dialog-icon="warning"
+                          uk-icon="icon: warning; ratio: 1.1"
+                          class="mg-dialog-icon mg-dialog-icon--warn" hidden></span>
+                    <span data-dialog-icon="info"
+                          uk-icon="icon: info; ratio: 1.1"
+                          class="mg-dialog-icon mg-dialog-icon--info" hidden></span>
+                    <h2 class="uk-modal-title" id="mg-dialog-title"></h2>
+                </div>
+            </div>
+            <div class="uk-modal-body" id="mg-dialog-body"></div>
+            <div class="uk-modal-footer mg-dialog-footer" id="mg-dialog-footer"></div>
+        </div>
     </div>
 
     <!-- Franken UI JavaScript: core (UIkit + components) and icons. -->

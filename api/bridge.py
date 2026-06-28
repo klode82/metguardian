@@ -91,10 +91,21 @@ class Bridge:
     def get_active_files(self) -> list:
         """Return the currently monitored files.
 
+        Each row is augmented with a ``restorable`` boolean: ``True`` when the
+        file is DAMAGED *and* its backup exists on disk, meaning the UI should
+        show a restore checkbox for it.
+
         Returns:
             list[dict]: active files, ordered by slot number.
         """
-        return self.repo.list_active()
+        rows = self.repo.list_active()
+        for row in rows:
+            row["restorable"] = (
+                row.get("state") == "DAMAGED"
+                and bool(row.get("backup_path"))
+                and Path(row["backup_path"]).is_file()
+            )
+        return rows
 
     def get_archive(self) -> list:
         """Return the archived files (newest first).
@@ -220,6 +231,53 @@ class Bridge:
             return {"ok": True, "theme": theme}
         except Exception as exc:
             logger.exception("set_theme failed")
+            return {"ok": False, "error": str(exc)}
+
+    def restore_files(self, numbers) -> dict:
+        """Restore DAMAGED part.met files from their last valid backups.
+
+        For each slot, the backup is copied back to the temp folder, overwriting
+        the damaged file (and removing its .bak if present). After a successful
+        restore, an immediate scan is triggered so the file transitions back to
+        OK in the same call.
+
+        The caller (UI) must have already warned the user to close eMule.
+        MetGuardian cannot verify this; the temp folder may be on a different
+        machine or VM.
+
+        Args:
+            numbers (list): slot numbers to restore (e.g. ``["001", "032"]``).
+
+        Returns:
+            dict: ``{"ok", "results": {number: {"ok", "error"}}}``.
+        """
+        try:
+            from core.restore import RestoreManager
+
+            if not isinstance(numbers, list) or not numbers:
+                return {"ok": False, "error": "No slot numbers provided."}
+
+            numbers = [str(n) for n in numbers if n]
+            if not numbers:
+                return {"ok": False, "error": "No valid slot numbers provided."}
+
+            temp_folder = self.repo.get_config("temp_folder") or ""
+
+            active_records = {}
+            for number in numbers:
+                record = self.repo.get_active_by_number(number)
+                if record:
+                    active_records[number] = record
+
+            manager = RestoreManager()
+            results = manager.restore_files(numbers, temp_folder, active_records)
+
+            if self.scheduler and any(r.get("ok") for r in results.values()):
+                self.scheduler.scan_now()
+
+            return {"ok": True, "results": results}
+        except Exception as exc:
+            logger.exception("restore_files failed")
             return {"ok": False, "error": str(exc)}
 
     def pick_folder(self, title="Select a folder") -> dict:

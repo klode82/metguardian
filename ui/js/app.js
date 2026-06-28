@@ -12,6 +12,70 @@
 (function () {
     "use strict";
 
+    // ---- Generic dialog (Franken UI uk-modal) ---------------------------
+    // showDialog({ icon, title, body, buttons }) → Promise<key|null>
+    //
+    // icon    : "warning" | "info" | null   (maps to a pre-rendered icon slot)
+    // title   : string
+    // body    : HTML string (caller is responsible for escaping user data)
+    // buttons : [{ key, label, cls }]  — injected into #mg-dialog-footer
+    //           cls defaults to "uk-btn-secondary"
+    //           key is the string resolved by the Promise when clicked
+    //
+    // Clicking the UIkit backdrop / pressing Esc resolves with null.
+    // There must be at most one dialog open at a time (typical for modals).
+
+    var dialogResolve = null;
+
+    function showDialog(opts) {
+        return new Promise(function (resolve) {
+            dialogResolve = resolve;
+
+            // Show the right icon; hide the others.
+            $all("[data-dialog-icon]").forEach(function (el) { el.hidden = true; });
+            if (opts.icon) {
+                var iconEl = $("[data-dialog-icon='" + opts.icon + "']");
+                if (iconEl) iconEl.hidden = false;
+            }
+
+            // Title and body.
+            $("#mg-dialog-title").textContent = opts.title || "";
+            $("#mg-dialog-body").innerHTML = opts.body || "";
+
+            // Buttons.
+            var footer = $("#mg-dialog-footer");
+            footer.innerHTML = "";
+            var btns = opts.buttons || [{ key: "ok", label: "OK", cls: "uk-btn-primary" }];
+            btns.forEach(function (btn) {
+                var b = document.createElement("button");
+                b.type = "button";
+                b.className = "uk-btn " + (btn.cls || "uk-btn-secondary");
+                b.textContent = btn.label;
+                b.addEventListener("click", function () {
+                    UIkit.modal("#mg-dialog").hide();
+                    if (dialogResolve) {
+                        var r = dialogResolve;
+                        dialogResolve = null;
+                        r(btn.key);
+                    }
+                });
+                footer.appendChild(b);
+            });
+
+            UIkit.modal("#mg-dialog").show();
+        });
+    }
+
+    // When the UIkit modal is hidden by any means (backdrop click, Esc, or our
+    // button handler) resolve the promise with null if it hasn't been resolved yet.
+    document.getElementById("mg-dialog").addEventListener("hidden", function () {
+        if (dialogResolve) {
+            var r = dialogResolve;
+            dialogResolve = null;
+            r(null);
+        }
+    });
+
     // ---- Status display mapping -----------------------------------------
     // The DB stores OK / INACCESSIBLE / DAMAGED. "INACCESSIBLE" is shown to the
     // user as "Pending", which reads better for a file we simply could not
@@ -81,20 +145,58 @@
         return window.pywebview && window.pywebview.api ? window.pywebview.api : null;
     }
 
+    // ---- Restore state --------------------------------------------------
+    // restorableNumbers : slot numbers the bridge marked as restorable
+    //                     (DAMAGED + backup physically on disk)
+    // checkedNumbers    : Set of slot numbers currently checked in the table
+
+    var restorableNumbers = [];
+    var checkedNumbers = new Set();
+
+    function updateRestoreBar() {
+        var bar = $("#restore-bar");
+        var selBtn = $("#restore-selected-btn");
+        if (!restorableNumbers.length) {
+            bar.hidden = true;
+            return;
+        }
+        bar.hidden = false;
+        selBtn.disabled = checkedNumbers.size === 0;
+    }
+
     // ---- Rendering -------------------------------------------------------
 
     function renderActive(rows) {
-        const body = $("#active-rows");
-        const empty = $("#active-empty");
+        var body = $("#active-rows");
+        var empty = $("#active-empty");
         $("#count-active").textContent = rows.length;
+
+        // Preserve checkbox selections across refreshes: keep only numbers
+        // that are still present and still restorable.
+        var prevChecked = new Set(checkedNumbers);
+        checkedNumbers.clear();
+        restorableNumbers = rows
+            .filter(function (r) { return r.restorable; })
+            .map(function (r) { return r.number; });
+        restorableNumbers.forEach(function (n) {
+            if (prevChecked.has(n)) checkedNumbers.add(n);
+        });
+
         if (!rows.length) {
             body.innerHTML = "";
             empty.hidden = false;
+            updateRestoreBar();
             return;
         }
         empty.hidden = true;
         body.innerHTML = rows.map(function (r) {
+            var checkCell = r.restorable
+                ? '<td class="mg-col-check"><input type="checkbox" class="mg-restore-check"' +
+                  ' data-number="' + escapeHtml(r.number) + '"' +
+                  (checkedNumbers.has(r.number) ? " checked" : "") + "></td>"
+                : '<td class="mg-col-check"></td>';
             return "<tr>" +
+                checkCell +
                 '<td class="mg-mono">' + escapeHtml(r.number) + "</td>" +
                 '<td><div class="mg-filename" title="' + escapeHtml(r.file_name) + '">' +
                     (r.file_name ? escapeHtml(r.file_name) : '<span class="mg-muted">—</span>') + "</div></td>" +
@@ -103,6 +205,8 @@
                 '<td class="mg-muted">' + formatTime(r.last_updated) + "</td>" +
                 "</tr>";
         }).join("");
+
+        updateRestoreBar();
     }
 
     function renderArchive(rows) {
@@ -200,6 +304,81 @@
             console.error("Refresh failed:", err);
         } finally {
             refreshing = false;
+        }
+    }
+
+    // ---- Restore actions ------------------------------------------------
+
+    async function openRestoreConfirm(numbers) {
+        var count = numbers.length;
+        var fileList = numbers.map(function (n) { return "#" + n; }).join(", ");
+        var key = await showDialog({
+            icon: "warning",
+            title: "Before restoring",
+            body:
+                "<p>Make sure <strong>eMule is closed</strong> before proceeding.</p>" +
+                "<p class=\"mg-muted\">MetGuardian monitors a folder, not a process &mdash; " +
+                "the temp folder may be on a different machine or VM. " +
+                "Restoring while eMule is open may corrupt the file again.</p>" +
+                "<p class=\"mg-muted\">" +
+                count + (count === 1 ? " file" : " files") +
+                " to restore: <strong>" + escapeHtml(fileList) + "</strong></p>",
+            buttons: [
+                { key: "cancel",  label: "Cancel",  cls: "uk-btn-secondary" },
+                { key: "confirm", label: "Restore", cls: "uk-btn-destructive" },
+            ],
+        });
+        if (key === "confirm") {
+            doRestore(numbers);
+        }
+    }
+
+    async function doRestore(numbers) {
+        var a = api();
+        if (!a || !numbers.length) return;
+
+        var resultsDiv = $("#restore-results");
+        resultsDiv.innerHTML = "<div class=\"mg-restore-working\">Restoring " + numbers.length + " file(s)…</div>";
+        resultsDiv.hidden = false;
+
+        // Disable both restore buttons during the operation.
+        $("#restore-selected-btn").disabled = true;
+        $("#restore-all-btn").disabled = true;
+
+        try {
+            var response = await a.restore_files(numbers);
+            if (!response || !response.ok) {
+                resultsDiv.innerHTML =
+                    "<div class=\"mg-restore-global-error\">⚠ " +
+                    escapeHtml((response && response.error) || "Unknown error") + "</div>";
+                updateRestoreBar();
+                return;
+            }
+            var results = response.results || {};
+            resultsDiv.innerHTML = numbers.map(function (n) {
+                var r = results[n] || {};
+                if (r.ok) {
+                    return "<div class=\"mg-restore-item mg-restore-item--ok\">" +
+                        "<span uk-icon=\"icon: check; ratio: 0.85\"></span> #" +
+                        escapeHtml(n) + ": restored successfully.</div>";
+                }
+                return "<div class=\"mg-restore-item mg-restore-item--err\">" +
+                    "<span uk-icon=\"icon: warning; ratio: 0.85\"></span> #" +
+                    escapeHtml(n) + ": " + escapeHtml(r.error || "Unknown error") + "</div>";
+            }).join("");
+            // UIkit needs to re-scan the new uk-icon spans.
+            if (window.UIkit) UIkit.init(resultsDiv);
+
+            checkedNumbers.clear();
+            // refreshAll() picks up the new states; the scan triggered by the
+            // bridge's restore_files() will also fire a scan-complete event.
+            await refreshAll();
+        } catch (err) {
+            console.error("restore_files failed:", err);
+            resultsDiv.innerHTML =
+                "<div class=\"mg-restore-global-error\">⚠ Restore failed: " +
+                escapeHtml(String(err)) + "</div>";
+            updateRestoreBar();
         }
     }
 
@@ -326,6 +505,30 @@
         // Settings: dark mode -> live preview.
         $("#set-dark").addEventListener("change", function (e) {
             applyTheme(e.target.checked);
+        });
+
+        // Restore: checkbox toggles (event delegation on the tbody).
+        $("#active-rows").addEventListener("change", function (e) {
+            var cb = e.target.closest(".mg-restore-check");
+            if (!cb) return;
+            var number = cb.dataset.number;
+            if (cb.checked) {
+                checkedNumbers.add(number);
+            } else {
+                checkedNumbers.delete(number);
+            }
+            updateRestoreBar();
+        });
+
+        // Restore selected.
+        $("#restore-selected-btn").addEventListener("click", function () {
+            var selected = Array.from(checkedNumbers);
+            if (selected.length) openRestoreConfirm(selected);
+        });
+
+        // Restore all damaged.
+        $("#restore-all-btn").addEventListener("click", function () {
+            if (restorableNumbers.length) openRestoreConfirm(restorableNumbers.slice());
         });
 
         // The bridge pushes this after every scan (periodic or manual).

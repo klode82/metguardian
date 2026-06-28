@@ -16,18 +16,19 @@ which one is in use.
 
 Qt threading note
 -----------------
-Qt objects must be created and driven on the Qt GUI thread. ``start`` is called
-from pywebview's worker thread, so on the Qt branch I marshal the icon creation
-onto the GUI thread via ``QTimer.singleShot`` posted to the QApplication, and
-all menu actions are delivered to the supplied callbacks (which themselves use
-pywebview's thread-safe ``window.show()`` / ``destroy()``).
+Qt objects must be created and driven on the Qt GUI thread, but ``start`` is
+called from pywebview's worker thread. The 3-argument
+``QTimer.singleShot(msec, context, slot)`` form does not exist in PyQt6, so I
+marshal work onto the GUI thread with a small bridge QObject that carries a
+signal connected with a queued connection: emitting from any thread runs the
+slot on the GUI thread.
 """
 
 import sys
 import logging
 import threading
 
-__version__ = "2.0.0"
+__version__ = "2.1.0"
 
 logger = logging.getLogger("metguardian.tray")
 
@@ -80,6 +81,7 @@ class TrayIcon:
         self._icon = None         # pystray.Icon (Windows/macOS)
         self._qt_icon = None      # QSystemTrayIcon (Linux)
         self._qt_menu = None      # keep the QMenu alive
+        self._qt_bridge = None    # keep the marshalling bridge alive
         self._thread = None
 
     def start(self) -> bool:
@@ -130,24 +132,43 @@ class TrayIcon:
                 return False
 
             self._backend = "qt"
-            self._qt_run(self._qt_build_icon)  # build on the GUI thread
+            self._build_bridge()                # marshalling helper
+            self._qt_run(self._qt_build_icon)   # build on the GUI thread
             logger.info("Tray icon started (Qt backend).")
             return True
         except Exception:
             logger.exception("Qt tray unavailable; continuing without it.")
             return False
 
-    def _qt_run(self, fn):
-        """Run ``fn`` on the Qt GUI thread via a single-shot timer."""
-        from qtpy.QtCore import QTimer
+    def _build_bridge(self):
+        """Create the QObject bridge used to run callables on the GUI thread."""
+        from qtpy.QtCore import QObject, Signal, Qt
         from qtpy.QtWidgets import QApplication
 
         app = QApplication.instance()
-        if app is None:
+
+        class _Bridge(QObject):
+            run = Signal(object)
+
+            def __init__(self):
+                super().__init__()
+                # Live in the GUI thread so queued slots execute there.
+                self.moveToThread(app.thread())
+                self.run.connect(self._invoke, Qt.QueuedConnection)
+
+            def _invoke(self, func):
+                try:
+                    func()
+                except Exception:
+                    logger.exception("Qt GUI-thread call failed")
+
+        self._qt_bridge = _Bridge()
+
+    def _qt_run(self, fn):
+        """Run ``fn`` on the Qt GUI thread (via the bridge's queued signal)."""
+        if self._qt_bridge is None:
             return
-        # Posting with the app as the timer's context object makes fn run on the
-        # GUI thread's event loop, no matter which thread calls this.
-        QTimer.singleShot(0, app, fn)
+        self._qt_bridge.run.emit(fn)
 
     def _qt_build_icon(self):
         """Create the QSystemTrayIcon (must run on the GUI thread)."""
