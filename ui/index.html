@@ -81,6 +81,7 @@
                                 <th class="mg-col-status">Status</th>
                                 <th class="mg-col-hash">Hash</th>
                                 <th class="mg-col-time">Updated</th>
+                                <th class="mg-col-detail"></th>
                             </tr>
                         </thead>
                         <tbody id="active-rows"></tbody>
@@ -115,6 +116,7 @@
                                 <th class="mg-col-hash">Hash</th>
                                 <th class="mg-col-reason">Reason</th>
                                 <th class="mg-col-time">Archived</th>
+                                <th class="mg-col-detail"></th>
                             </tr>
                         </thead>
                         <tbody id="archive-rows"></tbody>
@@ -206,6 +208,23 @@
             </div>
             <div class="uk-modal-body" id="mg-dialog-body"></div>
             <div class="uk-modal-footer mg-dialog-footer" id="mg-dialog-footer"></div>
+        </div>
+    </div>
+
+    <!-- Detail modal: shows all parsed data for a single .part.met file.
+         Opened programmatically via openDetail() in app.js. The body is fully
+         populated by JS after the bridge call returns; the modal is shown first
+         with a loading state so there is no blank-screen delay. -->
+    <div id="mg-detail-modal" uk-modal>
+        <div class="uk-modal-dialog mg-detail-dialog">
+            <button class="uk-modal-close-default" type="button" uk-close></button>
+            <div class="uk-modal-header">
+                <h2 class="uk-modal-title" id="mg-detail-title">File detail</h2>
+            </div>
+            <div class="uk-modal-body mg-detail-body" id="mg-detail-body"></div>
+            <div class="uk-modal-footer mg-dialog-footer">
+                <button class="uk-btn uk-btn-secondary" type="button" id="mg-detail-close">Close</button>
+            </div>
         </div>
     </div>
 

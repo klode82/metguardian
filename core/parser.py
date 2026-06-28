@@ -18,9 +18,9 @@ Notes on the format
 -------------------
 The ``.met`` is a little-endian binary format with this structure:
 
-* 1 byte  -> version (I expect 0xE0, 0xE1 or 0xE2);
-* 16 bytes -> global file hash (MD4);
-* 4 bytes  -> date (``last modified`` timestamp);
+* 1 byte   -> version (I expect 0xE0, 0xE1 or 0xE2);
+* for 0xE0 : 4 bytes date, then 16 bytes hash
+* for 0xE1/0xE2: 16 bytes hash, then 4 bytes date
 * 2 bytes  -> number of part hashes, followed by N 16-byte blocks;
 * 4 bytes  -> number of tags, followed by the tags themselves.
 
@@ -39,7 +39,7 @@ from dataclasses import dataclass, field
 
 # Internal version of this class. I bump it when I change its behavior, so I
 # can track its evolution within the project.
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 
 
 class PartMetParser:
@@ -72,6 +72,8 @@ class PartMetParser:
         0x02: "filesize",
         0x03: "filetype",
         0x04: "fileformat",
+        0x05: "last_seen_complete",
+        0x08: "transferred",
         0x09: "last_seen_complete",
         0x12: "partfilename",
         0x13: "gap_start",
@@ -79,9 +81,14 @@ class PartMetParser:
         0x18: "dl_priority",
         0x19: "shared_upload",
         0x1A: "upload_priority",
+        0x1B: "corrupted_parts",
+        0x21: "dl_active_time",
         0x23: "status",
         0x27: "aich_hash",
         0x35: "part_hashes",
+        0xD3: "media_length",
+        0xD4: "media_bitrate",
+        0xD5: "media_codec",
         0xFB: "filesize_hi",
     }
 
@@ -209,9 +216,15 @@ class PartMetParser:
                 name_id = raw_name[0]
                 name = self.TAG_NAMES.get(name_id, f"tag_0x{name_id:02x}")
             elif name_len == 2:
-                # Extended ID: (namespace, id) — e.g. 0x09 0x30 = gap_start[0].
                 ns, tag_id = raw_name[0], raw_name[1]
-                name = self.TAG_NAMES.get(tag_id, f"tag_0x{ns:02x}_{tag_id:02x}")
+                # Gap tags use 2-byte names: first byte = FT_GAPSTART (0x09) or
+                # FT_GAPEND (0x0A), second byte = gap index (starting at 0x30).
+                if ns == 0x09:
+                    name = "gap_start"
+                elif ns == 0x0A:
+                    name = "gap_end"
+                else:
+                    name = self.TAG_NAMES.get(tag_id, f"tag_0x{ns:02x}_{tag_id:02x}")
             else:
                 # Actual textual name.
                 name = raw_name.decode('utf-8', errors='replace')

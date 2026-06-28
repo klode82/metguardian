@@ -27,10 +27,7 @@ e il progetto adotta il [Versionamento Semantico](https://semver.org/lang/it/).
   il DB va resettato perché i record esistenti hanno l'hash errato.
 
 ### In corso / pianificato
-- **Step 13 — Dettaglio del singolo part.met**: modal con tutti i dati del
-  `.met` (versione, MD4, nome, dimensione, data, n. parti, gap con
-  scaricato/mancante e %, tag). Ri-parsing on-demand del file in Temp o del
-  backup (per i danneggiati). Bridge `get_detail(number)`.
+- **Step 14 — Icona e branding**: icona definitiva.
 - **Step 14 — Icona e branding**: icona definitiva (mulo eMule con cappuccio
   grigio da "stregone", muso in evidenza, testa china; logo "MetGuardian" stile
   medievale). `make_tray_image()` caricherà l'icona da `ui/assets/` con fallback;
@@ -44,6 +41,31 @@ e il progetto adotta il [Versionamento Semantico](https://semver.org/lang/it/).
   DB, state machine, scheduler, bridge e finestra pywebview. Permette di lanciare
   e vedere la dashboard dal vivo. NON ancora incluso: tray (Step 11) — per ora la
   chiusura della finestra termina l'app — e notifiche (Step 10).
+
+### Completato (questa sessione)
+
+- **Step 13 — Dettaglio del singolo `.part.met`**: pulsante Detail su ogni riga
+  di Monitored e Archive. Modal dedicata con sezioni: File info (versione, MD4,
+  nome, dimensione, data, n. parti), Download progress (barra, byte scaricati /
+  mancanti / %, lista gap), Tags aggiuntivi. Sorgente: file live in Temp o
+  backup (fallback automatico per file DAMAGED/non più presenti in Temp).
+  Nuovi file: `core/detail.py` (`DetailReader`). Bridge: `get_detail(number,
+  backup_path=None)`. JS: `openDetail()`, `renderDetailContent()`.
+
+- **Fix parser — gap con nomi a 2 byte**: i tag `gap_start`/`gap_end` in formato
+  eMule/aMule usano un nome a 2 byte (`ns=0x09`/`0x0A` + indice). Il parser
+  mappava tutto come `tag_0x09_30` ecc. → zero gap catturati. Fix: `read_tag`
+  riconosce `ns == 0x09` → `"gap_start"`, `ns == 0x0A` → `"gap_end"`.
+  `parser.py` versione `1.1.0`.
+
+- **Fix parser — TAG_NAMES espanso**: aggiunti `transferred` (0x08),
+  `last_seen_complete` variante 0x05, `corrupted_parts` (0x1B),
+  `dl_active_time` (0x21), `media_length/bitrate/codec` (0xD3–0xD5).
+
+- **Fix UI — `UIkit.init()` → `refreshUI()`**: `UIkit.init` non esiste
+  nell'API UIkit 3. Sostituito con `refreshUI(el)` che chiama `UIkit.update()`,
+  centralizzato come helper generico per future re-inizializzazioni su HTML
+  dinamico.
 
 ### Completato
 - **Step 0 — Scaffolding**: struttura cartelle creata, ambiente virtuale

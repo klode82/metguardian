@@ -280,6 +280,38 @@ class Bridge:
             logger.exception("restore_files failed")
             return {"ok": False, "error": str(exc)}
 
+    def get_detail(self, number, backup_path=None) -> dict:
+        """Parse a .part.met file and return a presentation-ready detail dict.
+
+        Tries the live temp file first; falls back to the backup. For archive
+        rows the caller should pass ``backup_path`` so the backup can be read
+        even when the temp file no longer exists.
+
+        Args:
+            number (str): slot number (e.g. ``"001"``).
+            backup_path (str | None): explicit backup path override.
+
+        Returns:
+            dict: ``{"ok": True, "detail": {...}}`` or ``{"ok": False, "error": ...}``.
+        """
+        try:
+            from core.detail import DetailReader
+
+            number = str(number).strip()
+            temp_folder = self.repo.get_config("temp_folder") or ""
+            active_record = self.repo.get_active_by_number(number)
+            reader = DetailReader()
+            result = reader.get_detail(
+                number, temp_folder, active_record,
+                backup_path=backup_path or None,
+            )
+            if result is None:
+                return {"ok": False, "error": "Could not read the file or its backup."}
+            return {"ok": True, "detail": result}
+        except Exception as exc:
+            logger.exception("get_detail failed")
+            return {"ok": False, "error": str(exc)}
+
     def pick_folder(self, title="Select a folder") -> dict:
         """Open the native folder picker and return the chosen path.
 

@@ -76,6 +76,138 @@
         }
     });
 
+    // ---- Detail modal -------------------------------------------------------
+    // openDetail(number, backupPath) → calls get_detail on the bridge, renders
+    // the result into #mg-detail-modal and opens it.
+    //
+    // backupPath should be passed for archive rows (the temp file no longer
+    // exists); it is null for active rows (bridge tries the temp file first).
+
+    function _fmtBytes(n) {
+        if (n == null || n < 0) return "—";
+        if (n >= 1073741824) return (n / 1073741824).toFixed(2) + " GB";
+        if (n >= 1048576)    return (n / 1048576).toFixed(2) + " MB";
+        if (n >= 1024)       return (n / 1024).toFixed(2) + " KB";
+        return n + " B";
+    }
+
+    function _detailRow(label, valueHtml, rawHtml) {
+        return '<div class="mg-detail-label">' + escapeHtml(label) + '</div>' +
+               '<div class="mg-detail-value">' + (rawHtml ? valueHtml : escapeHtml(String(valueHtml || "—"))) + '</div>';
+    }
+
+    function renderDetailContent(detail) {
+        var html = "";
+
+        // ---- File info ----
+        var sourceBadge = detail.source === "temp"
+            ? '<span class="mg-detail-source-badge mg-detail-source-badge--temp">live file</span>'
+            : '<span class="mg-detail-source-badge mg-detail-source-badge--backup">backup (last valid)</span>';
+
+        html += '<div class="mg-detail-section">';
+        html += '<h3 class="mg-detail-section-title">File info</h3>';
+        html += '<div class="mg-detail-grid">';
+        html += _detailRow("Source",    sourceBadge, true);
+        html += _detailRow("Filename",  detail.filename || "—");
+        if (detail.partfilename) html += _detailRow("Part file", detail.partfilename);
+        html += _detailRow("Hash (MD4)", '<span class="mg-mono">' + escapeHtml(detail.file_hash) + '</span>', true);
+        html += _detailRow("Size",      detail.filesize_str);
+        html += _detailRow("Date",      detail.date);
+        html += _detailRow("Version",   detail.version);
+        html += _detailRow("Parts",     String(detail.num_parts));
+        html += '</div></div>';
+
+        // ---- Download progress ----
+        if (detail.filesize > 0) {
+            var pct = detail.percent_done || 0;
+            html += '<div class="mg-detail-section">';
+            html += '<h3 class="mg-detail-section-title">Download progress</h3>';
+            html += '<div class="mg-detail-progress-bar">';
+            html += '<div class="mg-detail-progress-fill" style="width:' + Math.min(100, pct).toFixed(1) + '%"></div>';
+            html += '</div>';
+            html += '<div class="mg-detail-progress-labels">';
+            html += '<span>' + escapeHtml(detail.downloaded_str) + ' downloaded (' + pct.toFixed(1) + '%)</span>';
+            html += '<span>' + (detail.missing > 0 ? escapeHtml(detail.missing_str) + ' missing' : 'Complete') + '</span>';
+            html += '</div>';
+
+            if (detail.gaps && detail.gaps.length) {
+                var shown = detail.gaps.slice(0, 25);
+                html += '<div class="mg-detail-gap-list">';
+                shown.forEach(function (g) {
+                    html += '<div class="mg-detail-gap-item">' +
+                        '<span class="mg-detail-gap-range">' +
+                        g.start.toLocaleString() + ' &ndash; ' + g.end.toLocaleString() +
+                        '</span>' +
+                        '<span>' + escapeHtml(_fmtBytes(g.size)) + '</span>' +
+                        '</div>';
+                });
+                if (detail.gaps.length > 25) {
+                    html += '<div class="mg-muted" style="font-size:12px;margin-top:4px;">… and ' +
+                        (detail.gaps.length - 25) + ' more gaps</div>';
+                }
+                html += '</div>';
+            } else {
+                html += '<p class="mg-muted" style="font-size:12.5px;margin:0">' +
+                    'No gaps — file may be fully downloaded or gap data is unavailable.</p>';
+            }
+            html += '</div>';
+        }
+
+        // ---- Additional tags ----
+        var tagKeys = Object.keys(detail.tags || {});
+        if (tagKeys.length) {
+            html += '<div class="mg-detail-section">';
+            html += '<h3 class="mg-detail-section-title">Tags</h3>';
+            html += '<table class="mg-detail-tag-table">';
+            tagKeys.forEach(function (k) {
+                var v = detail.tags[k];
+                html += '<tr><td>' + escapeHtml(k) + '</td>' +
+                    '<td class="mg-detail-tag-value">' + escapeHtml(String(v)) + '</td></tr>';
+            });
+            html += '</table></div>';
+        }
+
+        return html;
+    }
+
+    async function openDetail(number, backupPath) {
+        var a = api();
+        if (!a) return;
+
+        // Open modal immediately with a loading placeholder.
+        $("#mg-detail-title").textContent = "File #" + number;
+        $("#mg-detail-body").innerHTML = '<p class="mg-muted" style="padding:8px 0">Loading…</p>';
+        UIkit.modal("#mg-detail-modal").show();
+
+        try {
+            var response = await a.get_detail(number, backupPath || null);
+            if (!response || !response.ok) {
+                $("#mg-detail-body").innerHTML =
+                    '<p style="color:hsl(var(--destructive))">⚠ ' +
+                    escapeHtml((response && response.error) || "Unknown error") + '</p>';
+                return;
+            }
+            var detail = response.detail;
+            $("#mg-detail-title").textContent = "File #" + number +
+                (detail.filename ? "  ·  " + detail.filename : "");
+            $("#mg-detail-body").innerHTML = renderDetailContent(detail);
+        } catch (err) {
+            console.error("get_detail failed:", err);
+            $("#mg-detail-body").innerHTML =
+                '<p style="color:hsl(var(--destructive))">⚠ Failed to load detail: ' +
+                escapeHtml(String(err)) + '</p>';
+        }
+    }
+
+    // ---- UI refresh helper -----------------------------------------------
+    // Call this whenever dynamic HTML containing UIkit components (icons,
+    // tooltips, dropdowns) is injected into an existing node. UIkit's
+    // MutationObserver doesn't always catch innerHTML replacements; update()
+    // forces a re-scan of the subtree.
+    function refreshUI(el) {
+        if (window.UIkit) UIkit.update(el || document.body);
+    }
+
     // ---- Status display mapping -----------------------------------------
     // The DB stores OK / INACCESSIBLE / DAMAGED. "INACCESSIBLE" is shown to the
     // user as "Pending", which reads better for a file we simply could not
@@ -203,6 +335,8 @@
                 "<td>" + statusPill(r.state) + "</td>" +
                 '<td class="mg-mono mg-muted" title="' + escapeHtml(r.file_hash) + '">' + escapeHtml(shortHash(r.file_hash)) + "</td>" +
                 '<td class="mg-muted">' + formatTime(r.last_updated) + "</td>" +
+                '<td class="mg-col-detail"><button class="uk-btn uk-btn-secondary uk-btn-sm mg-detail-btn"' +
+                    ' data-number="' + escapeHtml(r.number) + '" type="button">Detail</button></td>' +
                 "</tr>";
         }).join("");
 
@@ -227,6 +361,9 @@
                 '<td class="mg-mono mg-muted" title="' + escapeHtml(r.file_hash) + '">' + escapeHtml(shortHash(r.file_hash)) + "</td>" +
                 "<td>" + escapeHtml(REASON_LABEL[r.reason] || r.reason) + "</td>" +
                 '<td class="mg-muted">' + formatTime(r.archived_at) + "</td>" +
+                '<td class="mg-col-detail"><button class="uk-btn uk-btn-secondary uk-btn-sm mg-detail-btn"' +
+                    ' data-number="' + escapeHtml(r.number) + '"' +
+                    ' data-backup-path="' + escapeHtml(r.backup_path || "") + '" type="button">Detail</button></td>' +
                 "</tr>";
         }).join("");
     }
@@ -366,8 +503,7 @@
                     "<span uk-icon=\"icon: warning; ratio: 0.85\"></span> #" +
                     escapeHtml(n) + ": " + escapeHtml(r.error || "Unknown error") + "</div>";
             }).join("");
-            // UIkit needs to re-scan the new uk-icon spans.
-            if (window.UIkit) UIkit.init(resultsDiv);
+            refreshUI(resultsDiv);
 
             checkedNumbers.clear();
             // refreshAll() picks up the new states; the scan triggered by the
@@ -529,6 +665,23 @@
         // Restore all damaged.
         $("#restore-all-btn").addEventListener("click", function () {
             if (restorableNumbers.length) openRestoreConfirm(restorableNumbers.slice());
+        });
+
+        // Detail button — active rows (event delegation).
+        $("#active-rows").addEventListener("click", function (e) {
+            var btn = e.target.closest(".mg-detail-btn");
+            if (btn) openDetail(btn.dataset.number, null);
+        });
+
+        // Detail button — archive rows (event delegation).
+        $("#archive-rows").addEventListener("click", function (e) {
+            var btn = e.target.closest(".mg-detail-btn");
+            if (btn) openDetail(btn.dataset.number, btn.dataset.backupPath || null);
+        });
+
+        // Detail modal close button.
+        $("#mg-detail-close").addEventListener("click", function () {
+            UIkit.modal("#mg-detail-modal").hide();
         });
 
         // The bridge pushes this after every scan (periodic or manual).
