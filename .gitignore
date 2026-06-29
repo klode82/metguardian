@@ -22,7 +22,7 @@ logs/
 build/
 dist/
 *.spec
-!metguardian.spec
+!metguardian-*.spec
 
 # File di sistema
 Thumbs.db

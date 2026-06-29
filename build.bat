@@ -26,7 +26,7 @@ if errorlevel 1 (
 )
 
 echo [3/3] Building MetGuardian...
-pyinstaller metguardian.spec --clean --noconfirm
+pyinstaller metguardian-win.spec --clean --noconfirm
 if errorlevel 1 (
     echo ERROR: PyInstaller build failed.
     exit /b 1

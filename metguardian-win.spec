@@ -2,11 +2,11 @@
 """PyInstaller spec for MetGuardian — Windows one-folder (onedir) build.
 
 Usage (on a Windows machine):
-    pip install -r requirements.txt
-    pip install pyinstaller
-    pyinstaller metguardian.spec
+    pip install --no-cache-dir -r requirements.txt
+    pip install --no-cache-dir pyinstaller
+    pyinstaller metguardian-win.spec --clean --noconfirm
 
-Output: dist\MetGuardian\MetGuardian.exe  (+ sibling files)
+Output: dist\MetGuardian\  (folder — zip to distribute)
 
 Cross-compilation is NOT supported by PyInstaller: this spec must be run on
 Windows to produce a Windows executable.
