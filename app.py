@@ -31,7 +31,8 @@ import webview  # pywebview
 # _HERE    = writable root next to the exe (data/, logs/)
 if getattr(sys, "frozen", False):
     _BUNDLE = Path(sys._MEIPASS)
-    _HERE   = Path(sys.executable).resolve().parent
+    _appimage = os.environ.get("APPIMAGE")
+    _HERE = Path(_appimage).resolve().parent if _appimage else Path(sys.executable).resolve().parent
 else:
     _BUNDLE = Path(__file__).resolve().parent
     _HERE   = _BUNDLE

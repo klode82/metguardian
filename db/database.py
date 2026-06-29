@@ -16,6 +16,7 @@ Design notes
   contains no business logic.
 """
 
+import os
 import sqlite3
 import sys
 from pathlib import Path
@@ -32,8 +33,11 @@ def _bundle_root() -> Path:
 
 
 def _writable_root() -> Path:
-    """Writable runtime data: directory next to the exe when frozen."""
+    """Writable runtime data: next to the exe (Windows) or AppImage file (Linux AppImage)."""
     if getattr(sys, "frozen", False):
+        appimage = os.environ.get("APPIMAGE")
+        if appimage:
+            return Path(appimage).resolve().parent
         return Path(sys.executable).resolve().parent
     return Path(__file__).resolve().parents[1]
 

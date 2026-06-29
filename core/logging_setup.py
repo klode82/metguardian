@@ -10,6 +10,7 @@ catches an unexpected error logs it here with a full traceback.
 """
 
 import logging
+import os
 import sys
 from pathlib import Path
 from logging.handlers import RotatingFileHandler
@@ -19,7 +20,8 @@ __version__ = "1.0.0"
 # Default log location: <app_root>/logs/metguardian.log
 # In frozen builds (PyInstaller onedir) the root is the exe's directory.
 if getattr(sys, "frozen", False):
-    DEFAULT_LOG_DIR = Path(sys.executable).resolve().parent / "logs"
+    _appimage = os.environ.get("APPIMAGE")
+    DEFAULT_LOG_DIR = (Path(_appimage).resolve().parent if _appimage else Path(sys.executable).resolve().parent) / "logs"
 else:
     DEFAULT_LOG_DIR = Path(__file__).resolve().parents[1] / "logs"
 
