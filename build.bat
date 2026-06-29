@@ -12,14 +12,14 @@ REM   build.bat
 setlocal
 
 echo [1/3] Installing dependencies...
-pip install -r requirements.txt
+pip install --no-cache-dir -r requirements.txt
 if errorlevel 1 (
     echo ERROR: pip install failed.
     exit /b 1
 )
 
 echo [2/3] Installing PyInstaller...
-pip install pyinstaller
+pip install --no-cache-dir pyinstaller
 if errorlevel 1 (
     echo ERROR: PyInstaller install failed.
     exit /b 1
