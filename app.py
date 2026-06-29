@@ -21,12 +21,20 @@ from pathlib import Path
 
 import webview  # pywebview
 
-# When frozen by PyInstaller (onedir build) the entry point is the .exe itself;
-# use its directory as the project root so that ui/ and db/ are found as siblings.
+# PyInstaller layout (onedir, v6+):
+#   dist\MetGuardian\MetGuardian.exe          ← sys.executable
+#   dist\MetGuardian\_internal\ui\            ← sys._MEIPASS  (read-only bundle)
+#   dist\MetGuardian\_internal\db\schema.sql
+#   dist\MetGuardian\data\                    ← writable at runtime (DB, logs)
+#
+# _BUNDLE  = where bundled read-only assets live (ui/, db/schema.sql)
+# _HERE    = writable root next to the exe (data/, logs/)
 if getattr(sys, "frozen", False):
-    _HERE = Path(sys.executable).resolve().parent
+    _BUNDLE = Path(sys._MEIPASS)
+    _HERE   = Path(sys.executable).resolve().parent
 else:
-    _HERE = Path(__file__).resolve().parent
+    _BUNDLE = Path(__file__).resolve().parent
+    _HERE   = _BUNDLE
 
 from core.logging_setup import setup_logging
 from db.database import Database
@@ -39,10 +47,10 @@ from tray.tray_icon import TrayIcon
 
 __version__ = "1.0.0"
 
-# Project root and the UI entry file.
+# Read-only resources come from the bundle; writable data lives next to the exe.
 PROJECT_ROOT = _HERE
-INDEX_HTML = PROJECT_ROOT / "ui" / "index.html"
-APP_ICON  = PROJECT_ROOT / "ui" / "assets" / "icon.png"
+INDEX_HTML = _BUNDLE / "ui" / "index.html"
+APP_ICON   = _BUNDLE / "ui" / "assets" / "icon.png"
 
 # Initial window size.
 WINDOW_TITLE = "MetGuardian"

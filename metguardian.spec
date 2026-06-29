@@ -12,17 +12,24 @@ Cross-compilation is NOT supported by PyInstaller: this spec must be run on
 Windows to produce a Windows executable.
 """
 
+import os
+
+# SPECPATH is set automatically by PyInstaller to the directory containing
+# this spec file. Using it makes paths absolute so they resolve correctly
+# regardless of where pyinstaller is launched from.
+ROOT = SPECPATH
+
 block_cipher = None
 
 a = Analysis(
-    ['app.py'],
-    pathex=[],
+    [os.path.join(ROOT, 'app.py')],
+    pathex=[ROOT],
     binaries=[],
     datas=[
         # The whole UI folder (HTML, CSS, JS, assets) lands at dist/MetGuardian/ui/
-        ('ui', 'ui'),
+        (os.path.join(ROOT, 'ui'), 'ui'),
         # The SQLite schema is loaded at first run; it must be a real file.
-        ('db/schema.sql', 'db'),
+        (os.path.join(ROOT, 'db', 'schema.sql'), 'db'),
     ],
     hiddenimports=[
         # pywebview Windows backends (both; one is selected at runtime).

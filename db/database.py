@@ -24,20 +24,25 @@ from contextlib import contextmanager
 __version__ = "1.0.0"
 
 
-def _app_root() -> Path:
-    """Return the application root regardless of frozen/source context."""
+def _bundle_root() -> Path:
+    """Read-only bundled assets: sys._MEIPASS (_internal/) when frozen."""
     if getattr(sys, "frozen", False):
-        # PyInstaller onedir: the exe sits at the root; db/ is a sibling.
-        return Path(sys.executable).resolve().parent
-    # Source: db/ is one level below the project root.
+        return Path(sys._MEIPASS)
     return Path(__file__).resolve().parents[1]
 
 
-# The schema lives in db/schema.sql (bundled as a data file in frozen builds).
-SCHEMA_PATH = _app_root() / "db" / "schema.sql"
+def _writable_root() -> Path:
+    """Writable runtime data: directory next to the exe when frozen."""
+    if getattr(sys, "frozen", False):
+        return Path(sys.executable).resolve().parent
+    return Path(__file__).resolve().parents[1]
 
-# Default database location: <app_root>/data/metguardian.db
-DEFAULT_DB_PATH = _app_root() / "data" / "metguardian.db"
+
+# schema.sql is a read-only bundled asset (lives in _internal/db/ when frozen).
+SCHEMA_PATH = _bundle_root() / "db" / "schema.sql"
+
+# The database is written at runtime; it lives next to the exe (not in _internal/).
+DEFAULT_DB_PATH = _writable_root() / "data" / "metguardian.db"
 
 
 class Database:
