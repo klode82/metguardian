@@ -38,7 +38,7 @@ WHITE = (255, 255, 255, 255)
 
 
 def make_tray_image(size=64):
-    """Draw the tray icon: a teal shield with a white check mark.
+    """Load the app icon from ui/assets/icon.png, fallback to a generated shield.
 
     Args:
         size (int): icon size in pixels (square).
@@ -46,8 +46,16 @@ def make_tray_image(size=64):
     Returns:
         PIL.Image.Image: the RGBA icon image.
     """
-    from PIL import Image, ImageDraw
+    from PIL import Image
+    from pathlib import Path
 
+    icon_path = Path(__file__).parent.parent / "ui" / "assets" / "icon.png"
+    if icon_path.is_file():
+        img = Image.open(icon_path).convert("RGBA")
+        return img.resize((size, size), Image.LANCZOS)
+
+    # Fallback: generated teal shield.
+    from PIL import ImageDraw
     img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
     w = h = size

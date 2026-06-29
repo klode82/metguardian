@@ -98,14 +98,18 @@ class Bridge:
         Returns:
             list[dict]: active files, ordered by slot number.
         """
-        rows = self.repo.list_active()
-        for row in rows:
-            row["restorable"] = (
-                row.get("state") == "DAMAGED"
-                and bool(row.get("backup_path"))
-                and Path(row["backup_path"]).is_file()
-            )
-        return rows
+        try:
+            rows = self.repo.list_active()
+            for row in rows:
+                row["restorable"] = (
+                    row.get("state") == "DAMAGED"
+                    and bool(row.get("backup_path"))
+                    and Path(row["backup_path"]).is_file()
+                )
+            return rows
+        except Exception:
+            logger.exception("get_active_files failed")
+            return []
 
     def get_archive(self) -> list:
         """Return the archived files (newest first).
@@ -113,7 +117,11 @@ class Bridge:
         Returns:
             list[dict]: archived files.
         """
-        return self.repo.list_archive()
+        try:
+            return self.repo.list_archive()
+        except Exception:
+            logger.exception("get_archive failed")
+            return []
 
     def get_log(self, limit=200) -> list:
         """Return the most recent log entries (newest first).
@@ -128,7 +136,11 @@ class Bridge:
             limit = int(limit)
         except (TypeError, ValueError):
             limit = 200
-        return self.repo.list_log(limit=limit)
+        try:
+            return self.repo.list_log(limit=limit)
+        except Exception:
+            logger.exception("get_log failed")
+            return []
 
     def get_config(self) -> dict:
         """Return the whole configuration.
@@ -136,7 +148,11 @@ class Bridge:
         Returns:
             dict: ``{key: value}`` for every setting.
         """
-        return self.repo.all_config()
+        try:
+            return self.repo.all_config()
+        except Exception:
+            logger.exception("get_config failed")
+            return {}
 
     def get_status(self) -> dict:
         """Return a small status snapshot for the header/dashboard.
@@ -144,14 +160,18 @@ class Bridge:
         Returns:
             dict: scheduler state, counts and the scan interval.
         """
-        return {
-            "scheduler_running": bool(self.scheduler and self.scheduler.is_running()),
-            "active_count": len(self.repo.list_active()),
-            "archive_count": len(self.repo.list_archive()),
-            "scan_interval_seconds": self.repo.get_config("scan_interval_seconds"),
-            "temp_folder": self.repo.get_config("temp_folder"),
-            "backup_folder": self.repo.get_config("backup_folder"),
-        }
+        try:
+            return {
+                "scheduler_running": bool(self.scheduler and self.scheduler.is_running()),
+                "active_count": len(self.repo.list_active()),
+                "archive_count": len(self.repo.list_archive()),
+                "scan_interval_seconds": self.repo.get_config("scan_interval_seconds"),
+                "temp_folder": self.repo.get_config("temp_folder"),
+                "backup_folder": self.repo.get_config("backup_folder"),
+            }
+        except Exception:
+            logger.exception("get_status failed")
+            return {"scheduler_running": False}
 
     # ------------------------------------------------------------------ #
     # Write / action methods
@@ -184,10 +204,16 @@ class Bridge:
             # Lenient validation of the folders, for user feedback only.
             temp_folder = (self.repo.get_config("temp_folder") or "").strip()
             backup_folder = (self.repo.get_config("backup_folder") or "").strip()
-            if temp_folder and not Path(temp_folder).is_dir():
+            if not temp_folder:
+                warnings.append("No temp folder is set; scanning is disabled.")
+            elif not Path(temp_folder).is_dir():
                 warnings.append("The temp folder does not exist or is not a directory.")
             if not backup_folder:
                 warnings.append("No backup folder is set; backups cannot be stored.")
+            elif not Path(backup_folder).is_dir():
+                warnings.append(
+                    "The backup folder does not exist yet; it will be created automatically on first scan."
+                )
 
             # Apply immediately by running a scan now (if we have a scheduler).
             scan = report_to_dict(self.scheduler.scan_now()) if self.scheduler else None

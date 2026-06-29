@@ -302,11 +302,11 @@ l'assenza dell'accelerazione. Non è un errore.
 | 9 | UI: impostazioni (cartelle, intervallo, dark mode) | ✅ Completo |
 | 10 | `core/notifier.py` — notifiche desktop cross-platform | ✅ Completo |
 | 11 | `tray/tray_icon.py` — system tray Qt+pystray | ✅ Completo, verificato XFCE |
-| 12 | **Ripristino file part.met** (`core/restore.py`) | ⏳ Prossimo |
-| 13 | **Dettaglio singolo part.met** (modal con tutti i dati) | ⏳ Pianificato |
-| 14 | **Icona e branding** (mulo con cappuccio, wordmark medievale) | ⏳ Arte da realizzare |
-| 15 | Rifiniture e robustezza | ⏳ Pianificato |
-| 16 | Packaging PyInstaller (.exe Windows) | ⏳ Pianificato |
+| 12 | **Ripristino file part.met** (`core/restore.py`) | ✅ Completo |
+| 13 | **Dettaglio singolo part.met** (`core/detail.py`, modal) | ✅ Completo |
+| 14 | **Icona e branding** (`ui/assets/icon.png`, tray, window) | ✅ Completo |
+| 15 | Rifiniture e robustezza | ✅ Completo |
+| 16 | Packaging PyInstaller (.exe Windows) | ✅ Completo |
 | 17 | Test end-to-end | ⏳ Pianificato |
 
 ---

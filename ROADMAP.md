@@ -45,6 +45,31 @@ Stati di uno slot (identificato dal **numero**, es. `493`): `OK`, `INACCESSIBILE
 
 ---
 
+## Avanzamento
+
+| # | Step | Stato |
+|---|------|-------|
+| 0 | Setup ambiente e scaffolding | ✅ |
+| 1 | Database layer | ✅ |
+| 2 | Lettura e classificazione stato | ✅ |
+| 3 | Scansione cartella Temp | ✅ |
+| 4 | Backup manager | ✅ |
+| 5 | Macchina a stati + logging transizioni | ✅ |
+| 6 | Scheduler | ✅ |
+| 7 | Bridge pywebview | ✅ |
+| 8 | UI: lista file e log | ✅ |
+| 9 | UI: impostazioni | ✅ |
+| 10 | Notifiche desktop cross-platform | ✅ |
+| 11 | System tray (Qt + pystray) | ✅ |
+| 12 | Ripristino file part.met | ✅ |
+| 13 | Dettaglio singolo part.met (modal) | ✅ |
+| 14 | Icona e branding | ✅ |
+| 15 | Rifiniture e robustezza | ✅ |
+| 16 | Packaging PyInstaller | ✅ |
+| 17 | Test end-to-end | ⏳ |
+
+---
+
 ## Step di sviluppo
 
 Ogni step ha un obiettivo e una *Definition of Done* (DoD): quando è "fatto".
@@ -172,9 +197,13 @@ Una scheda (modal) che mostra **tutti** i dati di un `.part.met`.
   il packaging.
 
 ### Step 15 — Rifiniture e robustezza
-- Gestione errori (cartella temp inesistente, permessi, DB lockato)
-- Log applicativo minimo per il debug
-- **DoD:** l'app non crasha negli scenari di errore comuni.
+- **Config guard all'avvio:** se `temp_folder` o `backup_folder` non sono configurate, la UI mostra un avviso e disabilita "Scan now" fino a quando non vengono impostate.
+- **Cartelle inesistenti o non leggibili:** scanner e backup_manager loggano e restituiscono risultato vuoto senza propagare eccezioni verso la UI.
+- **DB inaccessibile:** `OperationalError` SQLite catturata nel repository → log + risposta vuota, mai crash.
+- **Log rotation:** `RotatingFileHandler` su `data/metguardian.log` — max 2 MB × 3 backup per evitare crescita illimitata.
+- **Scan now disabilitato durante scansione in corso:** pulsante reso inattivo dal lancio del ciclo fino al suo completamento, per evitare cicli sovrapposti.
+- **Settings warnings:** al salvataggio, se le cartelle configurate non esistono su disco viene mostrato un avviso non bloccante in UI.
+- **DoD:** l'app non crasha negli scenari di errore comuni (cartella mancante, permessi negati, DB lockato); il file di log non cresce all'infinito; "Scan now" non è mai doppiabile.
 
 ### Step 16 — Packaging
 - Eseguibile Windows con **PyInstaller** (un singolo `.exe` o cartella)

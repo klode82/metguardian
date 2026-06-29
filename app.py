@@ -21,6 +21,13 @@ from pathlib import Path
 
 import webview  # pywebview
 
+# When frozen by PyInstaller (onedir build) the entry point is the .exe itself;
+# use its directory as the project root so that ui/ and db/ are found as siblings.
+if getattr(sys, "frozen", False):
+    _HERE = Path(sys.executable).resolve().parent
+else:
+    _HERE = Path(__file__).resolve().parent
+
 from core.logging_setup import setup_logging
 from db.database import Database
 from db.repository import Repository
@@ -33,8 +40,9 @@ from tray.tray_icon import TrayIcon
 __version__ = "1.0.0"
 
 # Project root and the UI entry file.
-PROJECT_ROOT = Path(__file__).resolve().parent
+PROJECT_ROOT = _HERE
 INDEX_HTML = PROJECT_ROOT / "ui" / "index.html"
+APP_ICON  = PROJECT_ROOT / "ui" / "assets" / "icon.png"
 
 # Initial window size.
 WINDOW_TITLE = "MetGuardian"
@@ -108,6 +116,24 @@ def main():
     # Let the bridge push refresh events and open native folder dialogs.
     bridge.set_window(window)
 
+    def _set_window_icon():
+        """Set the Qt application icon from ui/assets/icon.png (Linux only)."""
+        if not sys.platform.startswith("linux") or not APP_ICON.is_file():
+            return
+        try:
+            import io
+            from PIL import Image
+            from qtpy.QtWidgets import QApplication
+            from qtpy.QtGui import QIcon, QPixmap
+            from qtpy.QtCore import QByteArray
+            buf = io.BytesIO()
+            Image.open(APP_ICON).save(buf, format="PNG")
+            pix = QPixmap()
+            pix.loadFromData(QByteArray(buf.getvalue()))
+            QApplication.instance().setWindowIcon(QIcon(pix))
+        except Exception:
+            logger.exception("Could not set window icon.")
+
     # Shared flags between the GUI thread and the tray thread.
     state = {"quitting": False, "tray_ok": False}
 
@@ -147,6 +173,7 @@ def main():
     def on_started():
         """Runs once the GUI loop is up: start scanning and the tray."""
         logger.info("GUI started; launching scheduler.")
+        _set_window_icon()
         scheduler.start()
         state["tray_ok"] = tray.start()
         if not state["tray_ok"]:

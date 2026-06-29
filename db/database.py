@@ -17,17 +17,27 @@ Design notes
 """
 
 import sqlite3
+import sys
 from pathlib import Path
 from contextlib import contextmanager
 
 __version__ = "1.0.0"
 
-# The schema lives next to this file.
-SCHEMA_PATH = Path(__file__).with_name("schema.sql")
 
-# Default database location: <project_root>/data/metguardian.db
-# (db/ is one level below the project root, hence parents[1]).
-DEFAULT_DB_PATH = Path(__file__).resolve().parents[1] / "data" / "metguardian.db"
+def _app_root() -> Path:
+    """Return the application root regardless of frozen/source context."""
+    if getattr(sys, "frozen", False):
+        # PyInstaller onedir: the exe sits at the root; db/ is a sibling.
+        return Path(sys.executable).resolve().parent
+    # Source: db/ is one level below the project root.
+    return Path(__file__).resolve().parents[1]
+
+
+# The schema lives in db/schema.sql (bundled as a data file in frozen builds).
+SCHEMA_PATH = _app_root() / "db" / "schema.sql"
+
+# Default database location: <app_root>/data/metguardian.db
+DEFAULT_DB_PATH = _app_root() / "data" / "metguardian.db"
 
 
 class Database:

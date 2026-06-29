@@ -27,14 +27,7 @@ e il progetto adotta il [Versionamento Semantico](https://semver.org/lang/it/).
   il DB va resettato perché i record esistenti hanno l'hash errato.
 
 ### In corso / pianificato
-- **Step 14 — Icona e branding**: icona definitiva.
-- **Step 14 — Icona e branding**: icona definitiva (mulo eMule con cappuccio
-  grigio da "stregone", muso in evidenza, testa china; logo "MetGuardian" stile
-  medievale). `make_tray_image()` caricherà l'icona da `ui/assets/` con fallback;
-  `.ico` multi-risoluzione per finestra ed eseguibile.
-- **Step 15 — Rifiniture e robustezza**, **Step 16 — Packaging (.exe Windows)**,
-  **Step 17 — Test end-to-end** (numerazione aggiornata dopo l'inserimento dei
-  due nuovi step prima della building finale).
+- **Step 17 — Test end-to-end**.
 
 ### Anticipato
 - **`app.py` (bootstrap minimale, v1.0.0)**: entry point che collega logging,
@@ -43,6 +36,37 @@ e il progetto adotta il [Versionamento Semantico](https://semver.org/lang/it/).
   chiusura della finestra termina l'app — e notifiche (Step 10).
 
 ### Completato (questa sessione)
+
+- **Step 16 — Packaging PyInstaller (Windows)**:
+  - `metguardian.spec`: spec onedir per Windows. Bundle: `ui/` + `db/schema.sql`;
+    hidden imports per pywebview (winforms + edgechromium), pystray (win32), Pillow,
+    win11toast; esclusi i moduli Linux/macOS (PyQt6, pyobjc, xlib). `console=False`
+    per GUI pura senza finestra terminale.
+  - `build.bat`: script di build a tre passi (pip install + pyinstaller).
+  - `BUILD.md`: istruzioni complete (prerequisiti, output, distribuzione, note su
+    WebView2 e permessi scrittura).
+  - Path frozen: `app.py`, `db/database.py`, `core/logging_setup.py` usano
+    `sys.frozen` + `Path(sys.executable).parent` in build PyInstaller invece di
+    `__file__` (che non è attendibile nei moduli embedded).
+
+- **Step 15 — Rifiniture e robustezza**:
+  - `api/bridge.py`: tutti i metodi di lettura (`get_active_files`, `get_archive`,
+    `get_log`, `get_config`, `get_status`) ora sono protetti da `try/except` che
+    logga l'errore e restituisce un valore vuoto sicuro — la UI non riceve mai `null`
+    e non va in errore JS se il DB è temporaneamente inaccessibile.
+  - `api/bridge.py` — `save_config()`: warning aggiuntivo quando `backup_folder` è
+    impostata ma il path non esiste su disco ("sarà creata al primo scan").
+    Aggiunto anche warning simmetrico per `temp_folder` non impostata.
+  - `ui/js/app.js` — `renderStatus()`: quando `temp_folder` o `backup_folder` non
+    sono configurate, la status line mostra *"Folders not configured — go to
+    Settings"*, e il pulsante "Scan now" è disabilitato finché le cartelle non
+    vengono impostate (il button si riabilita alla prossima chiamata a
+    `renderStatus()` dopo il salvataggio delle impostazioni).
+  - Log rotation già presente (`RotatingFileHandler`, 1 MB × 5 file).
+  - Guardie cartella mancante già presenti: `scanner.scan()` lancia
+    `FileNotFoundError` catchato in `state_machine.run_cycle()`; errori per-file
+    catchati dal `try/except` del ciclo; `scanNow()` in JS già disabilita il
+    pulsante durante l'attesa.
 
 - **Step 13 — Dettaglio del singolo `.part.met`**: pulsante Detail su ogni riga
   di Monitored e Archive. Modal dedicata con sezioni: File info (versione, MD4,

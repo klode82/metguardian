@@ -433,8 +433,25 @@ body {
 /* Detail column (inline action button) ------------------------------------- */
 
 .mg-col-detail {
-    width: 70px;
-    text-align: right;
+    width: 44px;
+    text-align: center;
+}
+
+.mg-detail-btn {
+    appearance: none;
+    background: none;
+    border: 1px solid hsl(var(--border));
+    border-radius: 6px;
+    padding: 4px 6px;
+    cursor: pointer;
+    color: hsl(var(--foreground));
+    display: inline-flex;
+    align-items: center;
+    line-height: 1;
+}
+.mg-detail-btn:hover {
+    background: hsl(var(--muted));
+    color: hsl(var(--primary));
 }
 
 /* Detail modal ------------------------------------------------------------- */

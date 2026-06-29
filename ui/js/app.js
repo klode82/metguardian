@@ -335,10 +335,12 @@
                 "<td>" + statusPill(r.state) + "</td>" +
                 '<td class="mg-mono mg-muted" title="' + escapeHtml(r.file_hash) + '">' + escapeHtml(shortHash(r.file_hash)) + "</td>" +
                 '<td class="mg-muted">' + formatTime(r.last_updated) + "</td>" +
-                '<td class="mg-col-detail"><button class="uk-btn uk-btn-secondary uk-btn-sm mg-detail-btn"' +
-                    ' data-number="' + escapeHtml(r.number) + '" type="button">Detail</button></td>' +
+                '<td class="mg-col-detail"><button class="mg-detail-btn"' +
+                    ' data-number="' + escapeHtml(r.number) + '" type="button" title="Detail">' +
+                    '<uk-icon icon="info"></uk-icon></button></td>' +
                 "</tr>";
         }).join("");
+        refreshUI(body);
 
         updateRestoreBar();
     }
@@ -361,11 +363,13 @@
                 '<td class="mg-mono mg-muted" title="' + escapeHtml(r.file_hash) + '">' + escapeHtml(shortHash(r.file_hash)) + "</td>" +
                 "<td>" + escapeHtml(REASON_LABEL[r.reason] || r.reason) + "</td>" +
                 '<td class="mg-muted">' + formatTime(r.archived_at) + "</td>" +
-                '<td class="mg-col-detail"><button class="uk-btn uk-btn-secondary uk-btn-sm mg-detail-btn"' +
+                '<td class="mg-col-detail"><button class="mg-detail-btn"' +
                     ' data-number="' + escapeHtml(r.number) + '"' +
-                    ' data-backup-path="' + escapeHtml(r.backup_path || "") + '" type="button">Detail</button></td>' +
+                    ' data-backup-path="' + escapeHtml(r.backup_path || "") + '" type="button" title="Detail">' +
+                    '<uk-icon icon="info"></uk-icon></button></td>' +
                 "</tr>";
         }).join("");
+        refreshUI(body);
     }
 
     function renderLog(rows) {
@@ -391,14 +395,23 @@
     function renderStatus(status) {
         const dot = $("#status-dot");
         const text = $("#status-text");
-        if (status.scheduler_running) {
+        const scanBtn = $("#scan-now-btn");
+        const needsSetup = !status.temp_folder || !status.backup_folder;
+
+        if (needsSetup) {
+            dot.className = "mg-dot is-idle";
+            text.textContent = "Folders not configured — go to Settings";
+            if (scanBtn) scanBtn.disabled = true;
+        } else if (status.scheduler_running) {
             dot.className = "mg-dot is-running";
             const every = parseInt(status.scan_interval_seconds, 10);
             const mins = isFinite(every) ? Math.round(every / 60) : null;
             text.textContent = "Watching" + (mins ? " · every " + mins + " min" : "");
+            if (scanBtn) scanBtn.disabled = false;
         } else {
             dot.className = "mg-dot is-idle";
             text.textContent = "Idle";
+            if (scanBtn) scanBtn.disabled = false;
         }
     }
 
@@ -496,11 +509,11 @@
                 var r = results[n] || {};
                 if (r.ok) {
                     return "<div class=\"mg-restore-item mg-restore-item--ok\">" +
-                        "<span uk-icon=\"icon: check; ratio: 0.85\"></span> #" +
+                        "<uk-icon icon=\"check\"></uk-icon> #" +
                         escapeHtml(n) + ": restored successfully.</div>";
                 }
                 return "<div class=\"mg-restore-item mg-restore-item--err\">" +
-                    "<span uk-icon=\"icon: warning; ratio: 0.85\"></span> #" +
+                    "<uk-icon icon=\"warning\"></uk-icon> #" +
                     escapeHtml(n) + ": " + escapeHtml(r.error || "Unknown error") + "</div>";
             }).join("");
             refreshUI(resultsDiv);

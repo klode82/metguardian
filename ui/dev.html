@@ -1,31 +1,28 @@
 <!DOCTYPE html>
-<!-- The theme is chosen by a class on <html>: uk-theme-<color> (+ optional
-     "dark"). All 16 themes live inside core.min.css. In Step 9 this class will
-     be set dynamically from the saved configuration. -->
+<!-- Development entry point: identical to index.html but loads mock-api.js
+     before app.js so the UI works in a plain browser without Python running.
+     Usage: python -m http.server 8080  (from the ui/ folder)
+     Then open: http://localhost:8080/dev.html -->
 <html lang="en" class="uk-theme-teal">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>MetGuardian</title>
-
-    <!-- Franken UI components (UIkit is bundled into core.iife.js). -->
+    <title>MetGuardian — DEV</title>
     <link rel="stylesheet" href="css/core.min.css" />
-    <!-- Our own layout and status styling. -->
     <link rel="stylesheet" href="css/app.css" />
 </head>
 <body>
-    <div class="mg-shell">
+    <!-- Identical body to index.html — keep in sync manually when index.html changes. -->
 
-        <!-- Header: identity, live status, primary action. -->
+    <div class="mg-shell">
         <header class="mg-header">
             <div class="mg-brand">
                 <span class="mg-brand-mark"><img src="assets/icon.png" style="height:48px"></span>
                 <div>
-                    <h1 class="mg-title">MetGuardian</h1>
+                    <h1 class="mg-title">MetGuardian <span style="font-size:12px;font-weight:400;color:hsl(var(--destructive))">DEV</span></h1>
                     <p class="mg-subtitle">Smart backups for eMule part.met files</p>
                 </div>
             </div>
-
             <div class="mg-header-right">
                 <div class="mg-status-line" id="status-line">
                     <span class="mg-dot" id="status-dot"></span>
@@ -38,8 +35,6 @@
             </div>
         </header>
 
-        <!-- Damaged-files banner: the whole reason this app exists.
-             Hidden unless at least one file is currently damaged. -->
         <div class="mg-banner" id="damaged-banner" hidden>
             <div class="uk-alert uk-alert-destructive" role="alert">
                 <span class="mg-banner-icon" uk-icon="icon: warning"></span>
@@ -50,7 +45,6 @@
             </div>
         </div>
 
-        <!-- Section tabs. -->
         <nav class="mg-tabs" id="tabs">
             <button class="mg-tab is-active" data-tab="active" type="button">
                 Monitored <span class="mg-tab-count" id="count-active">0</span>
@@ -58,9 +52,7 @@
             <button class="mg-tab" data-tab="archive" type="button">
                 Archive <span class="mg-tab-count" id="count-archive">0</span>
             </button>
-            <button class="mg-tab" data-tab="log" type="button">
-                Activity log
-            </button>
+            <button class="mg-tab" data-tab="log" type="button">Activity log</button>
             <button class="mg-tab mg-tab-settings" data-tab="settings" type="button">
                 <span uk-icon="icon: settings; ratio: 0.85"></span>
                 Settings
@@ -69,7 +61,6 @@
 
         <main class="mg-main">
 
-            <!-- MONITORED (active) ----------------------------------------- -->
             <section class="mg-panel" data-panel="active">
                 <div class="uk-card">
                     <table class="uk-table uk-table-divider uk-table-hover mg-table">
@@ -86,17 +77,11 @@
                         </thead>
                         <tbody id="active-rows"></tbody>
                     </table>
-                    <!-- Restore toolbar: shown only when ≥1 damaged restorable file exists -->
                     <div class="mg-restore-bar" id="restore-bar" hidden>
-                        <button class="uk-btn uk-btn-sm mg-restore-selected-btn" id="restore-selected-btn" type="button" disabled>
-                            Restore selected
-                        </button>
-                        <button class="uk-btn uk-btn-sm mg-restore-all-btn" id="restore-all-btn" type="button">
-                            Restore all damaged
-                        </button>
+                        <button class="uk-btn uk-btn-sm mg-restore-selected-btn" id="restore-selected-btn" type="button" disabled>Restore selected</button>
+                        <button class="uk-btn uk-btn-sm mg-restore-all-btn" id="restore-all-btn" type="button">Restore all damaged</button>
                         <span class="mg-restore-hint">eMule must be closed before restoring</span>
                     </div>
-                    <!-- Per-file restore results -->
                     <div class="mg-restore-results" id="restore-results" hidden></div>
                     <div class="mg-empty" id="active-empty" hidden>
                         <p>No files are being monitored yet.</p>
@@ -105,7 +90,6 @@
                 </div>
             </section>
 
-            <!-- ARCHIVE ----------------------------------------------------- -->
             <section class="mg-panel" data-panel="archive" hidden>
                 <div class="uk-card">
                     <table class="uk-table uk-table-divider uk-table-hover mg-table">
@@ -123,12 +107,11 @@
                     </table>
                     <div class="mg-empty" id="archive-empty" hidden>
                         <p>Nothing archived yet.</p>
-                        <p class="mg-empty-hint">Completed, removed or replaced downloads will appear here. Their backups stay on disk.</p>
+                        <p class="mg-empty-hint">Completed, removed or replaced downloads will appear here.</p>
                     </div>
                 </div>
             </section>
 
-            <!-- ACTIVITY LOG ------------------------------------------------ -->
             <section class="mg-panel" data-panel="log" hidden>
                 <div class="uk-card">
                     <table class="uk-table uk-table-divider mg-table">
@@ -144,16 +127,13 @@
                     </table>
                     <div class="mg-empty" id="log-empty" hidden>
                         <p>No activity recorded yet.</p>
-                        <p class="mg-empty-hint">Only state changes are logged, never repeated confirmations.</p>
                     </div>
                 </div>
             </section>
 
-            <!-- SETTINGS ---------------------------------------------------- -->
             <section class="mg-panel" data-panel="settings" hidden>
                 <div class="uk-card mg-settings">
                     <div class="mg-card-pad">
-
                         <h2 class="mg-section-title">Folders</h2>
                         <label class="mg-field-label" for="set-temp">eMule / aMule temp folder</label>
                         <div class="mg-field-row">
@@ -165,23 +145,19 @@
                             <input class="uk-input mg-mono" id="set-backup" type="text" placeholder="Not set" />
                             <button class="uk-btn uk-btn-secondary uk-btn-sm" id="browse-backup" type="button">Browse…</button>
                         </div>
-
                         <h2 class="mg-section-title">Scanning</h2>
                         <label class="mg-field-label" for="set-interval">Scan every (minutes)</label>
                         <input class="uk-input mg-input-narrow" id="set-interval" type="number" min="1" step="1" />
-
                         <h2 class="mg-section-title">Appearance</h2>
                         <label class="mg-toggle">
                             <input type="checkbox" id="set-dark" />
                             <span>Dark mode</span>
                         </label>
-
                         <div class="mg-settings-actions">
                             <button class="uk-btn uk-btn-primary" id="save-settings" type="button">Save settings</button>
                             <span class="mg-save-status" id="save-status"></span>
                         </div>
                         <div class="mg-warnings" id="settings-warnings" hidden></div>
-
                     </div>
                 </div>
             </section>
@@ -189,20 +165,12 @@
         </main>
     </div>
 
-    <!-- Generic dialog component (Franken UI / UIkit uk-modal).
-         showDialog({icon, title, body, buttons}) in app.js populates and opens it.
-         Icon slots are pre-rendered at load time so UIkit processes uk-icon
-         attributes; JS shows only the requested one at runtime. -->
     <div id="mg-dialog" uk-modal>
         <div class="uk-modal-dialog">
             <div class="uk-modal-header">
                 <div class="mg-dialog-title-row">
-                    <span data-dialog-icon="warning"
-                          uk-icon="icon: warning; ratio: 1.1"
-                          class="mg-dialog-icon mg-dialog-icon--warn" hidden></span>
-                    <span data-dialog-icon="info"
-                          uk-icon="icon: info; ratio: 1.1"
-                          class="mg-dialog-icon mg-dialog-icon--info" hidden></span>
+                    <span data-dialog-icon="warning" uk-icon="icon: warning; ratio: 1.1" class="mg-dialog-icon mg-dialog-icon--warn" hidden></span>
+                    <span data-dialog-icon="info"    uk-icon="icon: info; ratio: 1.1"    class="mg-dialog-icon mg-dialog-icon--info" hidden></span>
                     <h2 class="uk-modal-title" id="mg-dialog-title"></h2>
                 </div>
             </div>
@@ -211,10 +179,6 @@
         </div>
     </div>
 
-    <!-- Detail modal: shows all parsed data for a single .part.met file.
-         Opened programmatically via openDetail() in app.js. The body is fully
-         populated by JS after the bridge call returns; the modal is shown first
-         with a loading state so there is no blank-screen delay. -->
     <div id="mg-detail-modal" uk-modal>
         <div class="uk-modal-dialog mg-detail-dialog">
             <button class="uk-modal-close-default" type="button" uk-close></button>
@@ -228,10 +192,9 @@
         </div>
     </div>
 
-    <!-- Franken UI JavaScript: core (UIkit + components) and icons. -->
     <script src="js/core.iife.js"></script>
     <script src="js/icon.iife.js"></script>
-    <!-- Our application logic. -->
+    <script src="mock-api.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>
