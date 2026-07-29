@@ -103,6 +103,7 @@ exe = EXE(
     codesign_identity=None,
     entitlements_file=None,
     icon='ui\\assets\\icon.ico',
+    version=os.path.join(ROOT, 'version_info.txt'),
 )
 
 coll = COLLECT(

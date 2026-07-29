@@ -46,7 +46,7 @@ from api.bridge import Bridge
 from core.notifier import Notifier
 from tray.tray_icon import TrayIcon
 
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 
 # Read-only resources come from the bundle; writable data lives next to the exe.
 PROJECT_ROOT = _HERE
