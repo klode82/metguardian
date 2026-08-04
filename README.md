@@ -26,6 +26,10 @@
   <img src="https://img.shields.io/badge/win11toast-Windows_only-0078D4?style=flat-square&logo=windows&logoColor=white" alt="win11toast">
 </p>
 
+<p align="center">
+<img src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=&slug=aurigalab&button_colour=FF5F5F&font_colour=ffffff&font_family=Poppins&outline_colour=000000&coffee_colour=FFDD00" alt="Buy me a Coffee - AurigaLAB">
+</p>
+
 ---
 
 ## Why MetGuardian?
