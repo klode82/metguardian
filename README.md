@@ -84,7 +84,6 @@ Configure from the UI without restarting:
 ---
 
 <!--START_SECTION:buy-me-a-coffee-->
-<a href="https://www.buymeacoffee.com/aurigalab"><img src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=&slug=aurigalab&button_colour=FF5F5F&font_colour=ffffff&font_family=Poppins&outline_colour=000000&coffee_colour=FFDD00" /></a>
 <!--END_SECTION:buy-me-a-coffe-->
 
 ---
