@@ -89,11 +89,6 @@ Configure from the UI without restarting:
 
 ---
 
-<!--START_SECTION:buy-me-a-coffee-->
-<!--END_SECTION:buy-me-a-coffe-->
-
----
-
 ## Running from source
 
 ```bash
