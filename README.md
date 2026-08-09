@@ -28,7 +28,7 @@
 
 <p align="center">
   <a href="https://www.buymeacoffee.com/aurigalab" target="_blank" title="buymeacoffee">
-    <img src="https://iili.io/JoQ1MeS.md.png"  alt="buymeacoffee-yellow-badge" style="width: 104px;">
+    <img src="https://iili.io/JoQ1MeS.md.png"  alt="buymeacoffee-yellow-badge">
   </a>
 </p>
 
@@ -87,6 +87,14 @@ Configure from the UI without restarting:
 - **Backup folder** — where backup `.met` files are stored
 - **Scan interval** — in minutes (minimum: 1)
 - **Dark mode** toggle
+
+---
+
+<p align="center">
+  <a href="https://www.buymeacoffee.com/aurigalab" target="_blank" title="buymeacoffee">
+    <img src="https://iili.io/JoQ1MeS.md.png"  alt="buymeacoffee-yellow-badge">
+  </a>
+</p>
 
 ---
 
@@ -163,3 +171,11 @@ See [BUILD.md](BUILD.md) for full instructions. Quick reference:
 ## License
 
 MIT — see [LICENSE](LICENSE) for details.
+
+---
+
+<p align="center">
+  <a href="https://www.buymeacoffee.com/aurigalab" target="_blank" title="buymeacoffee">
+    <img src="https://iili.io/JoQ1MeS.md.png"  alt="buymeacoffee-yellow-badge">
+  </a>
+</p>
