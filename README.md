@@ -179,3 +179,5 @@ MIT — see [LICENSE](LICENSE) for details.
     <img src="https://iili.io/JoQ1MeS.md.png"  alt="buymeacoffee-yellow-badge">
   </a>
 </p>
+
+<!-- Security scan triggered at 2026-08-31 16:56:53 -->
