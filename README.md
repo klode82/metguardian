@@ -195,3 +195,5 @@ MIT — see [LICENSE](LICENSE) for details.
 <!-- Security scan triggered at 2026-09-03 22:08:19 -->
 
 <!-- Security scan triggered at 2026-09-03 23:03:31 -->
+
+<!-- Security scan triggered at 2026-09-05 07:32:46 -->
